@@ -4,6 +4,13 @@ github: <https://github.com/hnakae/Project-1-MaxGPA>
 
 Hiro Robert Peyton Keagan
 
+## Getting Started:
+```
+cd project-1-maxgpa
+npm install
+npm run dev 
+```
+
 Description: This is going to be a web app that is going to help students at a university pick the required classes that they need for their selected major.
 
 The distribution of grades awarded across all required classes in a major, as a predictor of GPA upon completion of a major.
@@ -17,8 +24,7 @@ architectural components to consider:
 - frontend: 
     - nextjs (js framework) + tailwind (css library)
 - backend:
-    - api (typescript data science stuff + api endpoint for nextjs client)
-        - instead of using python for some library to do this, do it manually.
+    - api (python data science stuff + api endpoint for nextjs client)
     - db (mongo? sqlite3? local postgres?)
 - deployment:
     - docker (will need to do at the end before submission.)
