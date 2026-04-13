@@ -4,6 +4,13 @@
 
 github: <https://github.com/hnakae/Project-1-MaxGPA>
 
+SDS document: <https://docs.google.com/document/d/1NLye7ptwLU-Bzha-F7nVhyjYpdZsUW3X5xVEV1s8BvQ/edit?tab=t.0>
+
+## Version Control Protocol
+
+- Remember to git pull before pushing!
+- Put your name in the git commit message: git commit -m 'msg:hiro'
+
 ## Getting Started
 
 ```bash
