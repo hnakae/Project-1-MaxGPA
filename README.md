@@ -9,12 +9,19 @@ SDS document: <https://docs.google.com/document/d/1NLye7ptwLU-Bzha-F7nVhyjYpdZsU
 
 ## Version Control Protocol
 
-- Remember to git pull before pushing!
-- notify the team in group text whenever you push
-    - before and after
+1. npm run build (app)
+2. npx vitest (app/api/db) - optional for now
+3. Remember to git pull before pushing!
+4. notify the team in group text whenever you push
+    - before and after.
+5. Don't put your name in git commit message (redundant)
 
-- Put your name in the git commit message: git commit -m 'msg:hiro'
-
+- Here's the convention i'm using right now:
+    feat(app): feature description,
+    feat(api): description,
+    setup(db): description,
+    feat(tests): description,
+    chore(config): description
 
 ## Getting Started
 
