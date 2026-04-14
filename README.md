@@ -10,7 +10,11 @@ SDS document: <https://docs.google.com/document/d/1NLye7ptwLU-Bzha-F7nVhyjYpdZsU
 ## Version Control Protocol
 
 - Remember to git pull before pushing!
+- notify the team in group text whenever you push
+    - before and after
+
 - Put your name in the git commit message: git commit -m 'msg:hiro'
+
 
 ## Getting Started
 
