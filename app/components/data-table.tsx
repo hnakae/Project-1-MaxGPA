@@ -3,15 +3,17 @@ import { useState } from "react";
 
 interface DataRow {
   id: number;
+  majorId?: number;
   major: string;
-  course: string;
+  subject?: string;
+  courseNumber?: number;
   credits: number;
   required: boolean;
 }
 
 interface DataTableProps {
   data: DataRow[];
-  onUpdateRow: (id: number, field: string, value: any) => void;
+  onUpdateRow: (id: number, field: string, value: string | number | boolean) => void;
   onDeleteRow: (id: number) => void;
 }
 
@@ -19,17 +21,21 @@ export function DataTable({ data, onUpdateRow, onDeleteRow }: DataTableProps) {
   const [editingCell, setEditingCell] = useState<{ id: number; field: string } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
 
-  const handleEdit = (id: number, field: string, currentValue: any) => {
+  const handleEdit = (
+    id: number,
+    field: string,
+    currentValue: string | number | boolean | undefined,
+  ) => {
     setEditingCell({ id, field });
-    setEditValue(String(currentValue));
+    setEditValue(String(currentValue ?? ""));
   };
 
   const handleSave = () => {
     if (editingCell) {
       const { id, field } = editingCell;
-      let value: any = editValue;
+      let value: string | number | boolean = editValue;
 
-      if (field === "credits") {
+      if (field === "credits" || field === "courseNumber") {
         value = parseInt(editValue, 10);
       } else if (field === "required") {
         value = editValue === "true";
@@ -55,7 +61,8 @@ export function DataTable({ data, onUpdateRow, onDeleteRow }: DataTableProps) {
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
               <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Major</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Course</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Subject</th>
+              <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Course #</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Credits</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Required</th>
               <th className="px-6 py-4 text-right text-sm font-semibold text-slate-900">Actions</th>
@@ -86,7 +93,7 @@ export function DataTable({ data, onUpdateRow, onDeleteRow }: DataTableProps) {
                   )}
                 </td>
                 <td className="px-6 py-4">
-                  {editingCell?.id === row.id && editingCell.field === "course" ? (
+                  {editingCell?.id === row.id && editingCell.field === "subject" ? (
                     <input
                       type="text"
                       value={editValue}
@@ -94,14 +101,35 @@ export function DataTable({ data, onUpdateRow, onDeleteRow }: DataTableProps) {
                       onBlur={handleSave}
                       onKeyDown={handleKeyDown}
                       autoFocus
-                      className="px-2 py-1 border border-emerald-500 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-20 px-2 py-1 border border-emerald-500 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   ) : (
                     <div
                       className="flex items-center gap-2 cursor-pointer group"
-                      onClick={() => handleEdit(row.id, "course", row.course)}
+                      onClick={() => handleEdit(row.id, "subject", row.subject)}
                     >
-                      <span className="text-slate-900">{row.course}</span>
+                      <span className="text-slate-900">{row.subject}</span>
+                      <Edit2 className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  )}
+                </td>
+                <td className="px-6 py-4">
+                  {editingCell?.id === row.id && editingCell.field === "courseNumber" ? (
+                    <input
+                      type="number"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={handleSave}
+                      onKeyDown={handleKeyDown}
+                      autoFocus
+                      className="w-20 px-2 py-1 border border-emerald-500 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  ) : (
+                    <div
+                      className="flex items-center gap-2 cursor-pointer group"
+                      onClick={() => handleEdit(row.id, "courseNumber", row.courseNumber)}
+                    >
+                      <span className="text-slate-900">{row.courseNumber}</span>
                       <Edit2 className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   )}

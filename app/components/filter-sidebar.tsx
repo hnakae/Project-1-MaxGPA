@@ -2,8 +2,8 @@ import { Search, ChevronDown } from "lucide-react";
 import * as Accordion from "@radix-ui/react-accordion";
 
 interface FilterSidebarProps {
-  selectedYear: string;
-  onYearChange: (year: string) => void;
+  selectedYears: string[];
+  onYearsChange: (years: string[]) => void;
   selectedMajor: string;
   onMajorChange: (major: string) => void;
   searchQuery: string;
@@ -11,23 +11,31 @@ interface FilterSidebarProps {
 }
 
 const academicYears = ["AY16", "AY17", "AY18", "AY19", "AY20", "AY21", "AY22", "AY23"];
-const majors = ["Computer Science", "Business", "Biology"];
+const majors = ["Computer Science", "Business Administration", "Biology"];
 
 export function FilterSidebar({
-  selectedYear,
-  onYearChange,
+  selectedYears,
+  onYearsChange,
   selectedMajor,
   onMajorChange,
   searchQuery,
   onSearchChange,
 }: FilterSidebarProps) {
+  const handleYearToggle = (year: string) => {
+    if (selectedYears.includes(year)) {
+      onYearsChange(selectedYears.filter((selectedYear) => selectedYear !== year));
+      return;
+    }
+
+    onYearsChange([...selectedYears, year]);
+  };
+
   return (
-    <aside className="w-80 bg-white border-r border-slate-200 overflow-auto">
+    <aside className="w-full shrink-0 border-b border-slate-200 bg-white lg:w-80 lg:border-r lg:border-b-0">
       <div className="p-6">
         <h3 className="text-slate-900 mb-6">Filters</h3>
 
         <Accordion.Root type="multiple" defaultValue={["year", "major", "course"]} className="space-y-4">
-          {/* Academic Year Filter */}
           <Accordion.Item value="year" className="border border-slate-200 rounded-lg overflow-hidden">
             <Accordion.Header>
               <Accordion.Trigger className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group">
@@ -36,6 +44,7 @@ export function FilterSidebar({
               </Accordion.Trigger>
             </Accordion.Header>
             <Accordion.Content className="p-4 pt-0 bg-slate-50">
+              <p className="mb-3 text-xs text-slate-600">Select one or more years (AY16–AY23)</p>
               <div className="space-y-2">
                 {academicYears.map((year) => (
                   <label
@@ -43,12 +52,11 @@ export function FilterSidebar({
                     className="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-white transition-colors"
                   >
                     <input
-                      type="radio"
-                      name="year"
+                      type="checkbox"
                       value={year}
-                      checked={selectedYear === year}
-                      onChange={(e) => onYearChange(e.target.value)}
-                      className="w-4 h-4 text-emerald-600 accent-emerald-600"
+                      checked={selectedYears.includes(year)}
+                      onChange={() => handleYearToggle(year)}
+                      className="h-4 w-4 rounded text-emerald-600 accent-emerald-600"
                     />
                     <span className="text-sm text-slate-700">{year}</span>
                   </label>
@@ -57,7 +65,6 @@ export function FilterSidebar({
             </Accordion.Content>
           </Accordion.Item>
 
-          {/* Major Filter */}
           <Accordion.Item value="major" className="border border-slate-200 rounded-lg overflow-hidden">
             <Accordion.Header>
               <Accordion.Trigger className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group">
@@ -87,7 +94,6 @@ export function FilterSidebar({
             </Accordion.Content>
           </Accordion.Item>
 
-          {/* Course Search */}
           <Accordion.Item value="course" className="border border-slate-200 rounded-lg overflow-hidden">
             <Accordion.Header>
               <Accordion.Trigger className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group">

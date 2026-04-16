@@ -2,8 +2,13 @@ import { useState, useRef } from "react";
 import { Upload, CheckCircle, AlertCircle } from "lucide-react";
 import * as Progress from "@radix-ui/react-progress";
 
+interface UploadedCourseSummary {
+  course: string;
+  avgGpa: number;
+}
+
 interface CsvUploadZoneProps {
-  onUploadComplete: (data: any[]) => void;
+  onUploadComplete: (data: UploadedCourseSummary[]) => void;
 }
 
 export function CsvUploadZone({ onUploadComplete }: CsvUploadZoneProps) {
