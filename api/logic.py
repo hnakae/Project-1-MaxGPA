@@ -1,1 +1,0 @@
-# Pandas/Numpy math (peyton)

@@ -14,7 +14,7 @@ interface GradeDistributionChartProps {
 
 const GRADE_COLORS = {
   A: "#10b981", // emerald-500
-  B: "#3b82f6", // blue-500
+  B: "#34d399", // emerald-400 (lighter green)
   C: "#f59e0b", // amber-500
   DNF: "#ef4444", // red-500
 };

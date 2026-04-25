@@ -45,7 +45,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-forest-900 text-white shadow-lg">
+      <header className="bg-forest-900 text-white shadow-lg print:hidden">
         <div className="flex flex-col gap-4 px-4 py-4 md:px-6 lg:flex-row lg:items-center lg:justify-between">
           <Link
             href={isAdmin ? "/admin" : "/"}
@@ -61,7 +61,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <nav className="flex flex-wrap items-center gap-2 md:gap-4">
             <Link
               href="/"
-              className={`rounded-lg px-4 py-2 transition-colors ${
+              className={`rounded-full px-4 py-2 transition-colors ${
                 pathname === "/" || pathname === "/dashboard"
                   ? "bg-emerald-600 text-white"
                   : "text-emerald-100 hover:bg-forest-800"
@@ -76,7 +76,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             {isAdmin && (
               <Link
                 href="/admin"
-                className={`rounded-lg px-4 py-2 transition-colors ${
+                className={`rounded-full px-4 py-2 transition-colors ${
                   pathname === "/admin"
                     ? "bg-emerald-600 text-white"
                     : "text-emerald-100 hover:bg-forest-800"
@@ -92,20 +92,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             {!isAdmin && (
               <Link
                 href="/saved-plans"
-                className={`rounded-lg px-4 py-2 transition-colors ${
+                className={`rounded-full px-4 py-2 transition-colors ${
                   pathname === "/saved-plans"
                     ? "bg-emerald-600 text-white"
                     : "text-emerald-100 hover:bg-forest-800"
                 }`}
               >
-                Saved Plans
+                My Degree Plan
               </Link>
             )}
 
-            <div className="border-emerald-700 lg:ml-4 lg:border-l lg:pl-4">
+            <div className="border-white/15 lg:ml-4 lg:border-l lg:pl-4">
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
-                  <button className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-forest-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <button className="flex items-center gap-3 rounded-full px-3 py-2 transition-colors hover:bg-forest-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
                     <div className="flex items-center gap-2">
                       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 font-semibold">
                         {currentUser.name

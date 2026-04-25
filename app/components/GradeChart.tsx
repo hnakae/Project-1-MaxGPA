@@ -16,7 +16,7 @@ export default function GradeChart({ chartData }: { chartData: ChartData }) {
       {
         label: 'Grade Distribution (%)',
         data: chartData.data,
-        backgroundColor: ['#4ade80', '#60a5fa', '#fbbf24', '#f87171'], // Green, Blue, Yellow, Red
+        backgroundColor: ['#10b981', '#34d399', '#f59e0b', '#ef4444'], // Dark green, light green, yellow, red
       },
     ],
   };

@@ -2,7 +2,7 @@
 import sqlite3
 import os
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "maxgpa.db")
+DB_PATH = os.path.join(os.path.dirname(__file__), "grade_data.db")
 SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schema.sql")
 
 def seed_database():

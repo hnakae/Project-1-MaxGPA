@@ -2,15 +2,26 @@
 
 :root {
   --font-size: 16px;
+
+  /* Font families */
+  --font-sans-stack: "Barlow", "United Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display-stack: "Barlow Semi Condensed", "United Sans Semi Cond", "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-mono-stack: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Font weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
   --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
+  --foreground: #212121;
   --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --card-foreground: #212121;
+  --popover: #ffffff;
+  --popover-foreground: #212121;
   --primary: #030213;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
+  --primary-foreground: #ffffff;
+  --secondary: #f2f2f9;
   --secondary-foreground: #030213;
   --muted: #ececf0;
   --muted-foreground: #717182;
@@ -22,68 +33,101 @@
   --input: transparent;
   --input-background: #f3f3f5;
   --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --ring: #10b981;
+  --chart-1: #e07030;
+  --chart-2: #3ba8af;
+  --chart-3: #4a6a8c;
+  --chart-4: #d4b200;
+  --chart-5: #c8a400;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar: #fafafa;
+  --sidebar-foreground: #212121;
   --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  
-  /* MaxGPA Custom Colors - Academic Palette */
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #f7f7f7;
+  --sidebar-accent-foreground: #303030;
+  --sidebar-border: #eaeaea;
+  --sidebar-ring: #aaaaaa;
+
+  /* Brand — Oregon forest greens */
   --forest-900: #064e3b;
   --forest-800: #065f46;
   --forest-700: #047857;
+
+  /* Emerald — active states, A grades, Seek verdict */
+  --emerald-100: #d1fae5;
+  --emerald-300: #6ee7b7;
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
+  --emerald-700: #047857;
+
+  /* Slate — neutral scale */
+  --slate-50:  #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+
+  /* Semantic grade / verdict colors */
+  --grade-a:   #10b981;
+  --grade-b:   #34d399;
+  --grade-c:   #f59e0b;
+  --grade-dnf: #ef4444;
+
+  --rose-100: #ffe4e6;
+  --rose-600:  #e11d48;
+  --rose-700:  #be123c;
+
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --background: #212121;
+  --foreground: #fafafa;
+  --card: #212121;
+  --card-foreground: #fafafa;
+  --popover: #212121;
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #303030;
+  --secondary: #3e3e3e;
+  --secondary-foreground: #fafafa;
+  --muted: #3e3e3e;
+  --muted-foreground: #aaaaaa;
+  --accent: #3e3e3e;
+  --accent-foreground: #fafafa;
+  --destructive: #7a2424;
+  --destructive-foreground: #d44444;
+  --border: #3e3e3e;
+  --input: #3e3e3e;
+  --ring: #686868;
+  --chart-1: #5b45e0;
+  --chart-2: #50c090;
+  --chart-3: #c8a400;
+  --chart-4: #9040d0;
+  --chart-5: #d44428;
+  --sidebar: #303030;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #5b45e0;
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #3e3e3e;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #3e3e3e;
+  --sidebar-ring: #686868;
 }
 
 @theme inline {
+  /* Fonts */
+  --font-sans: var(--font-sans-stack);
+  --font-display: var(--font-display-stack);
+  --font-mono: var(--font-geist-mono), var(--font-mono-stack);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -122,11 +166,17 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  
-  /* MaxGPA Custom Colors */
+
+  /* Brand */
   --color-forest-900: var(--forest-900);
   --color-forest-800: var(--forest-800);
   --color-forest-700: var(--forest-700);
+
+  /* Grade / verdict semantic colors */
+  --color-grade-a:   var(--grade-a);
+  --color-grade-b:   var(--grade-b);
+  --color-grade-c:   var(--grade-c);
+  --color-grade-dnf: var(--grade-dnf);
 }
 
 @layer base {
@@ -138,37 +188,39 @@
     @apply bg-background text-foreground;
   }
 
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
-
   html {
     font-size: var(--font-size);
+    font-family: var(--font-sans-stack);
   }
 
   h1 {
+    font-family: var(--font-display-stack);
     font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.25;
+    letter-spacing: -0.025em;
   }
 
   h2 {
+    font-family: var(--font-display-stack);
     font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.25;
+    letter-spacing: -0.025em;
   }
 
   h3 {
+    font-family: var(--font-display-stack);
     font-size: var(--text-lg);
     font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    line-height: 1.375;
   }
 
   h4 {
+    font-family: var(--font-display-stack);
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    line-height: 1.375;
   }
 
   label {
@@ -178,7 +230,7 @@
   }
 
   button {
-    font-size: var(--text-base);
+    font-size: var(--text-sm);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
   }
@@ -187,5 +239,38 @@
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
+  }
+}
+
+@media print {
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  @page {
+    margin: 1.5cm;
+  }
+
+  /* Keep each course card together; allow breaks between them */
+  .course-card-print {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+@layer components {
+  /* Primary forest-green button with gradient — replaces flat bg-forest-900 */
+  .btn-forest {
+    background: linear-gradient(180deg, #0a6347 0%, #064e3b 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 1px 2px rgba(6, 78, 59, 0.25);
+    transition: box-shadow 160ms, background 160ms;
+  }
+  .btn-forest:hover {
+    background: linear-gradient(180deg, #0c7050 0%, #065f46 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 2px 4px rgba(6, 78, 59, 0.3);
+  }
+  .btn-forest:active {
+    transform: translateY(0.5px);
   }
 }

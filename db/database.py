@@ -5,10 +5,10 @@ import pandas as pd
 import os
 import glob
 
-DB_FILE = 'data/grade_data.db'
-CSV_FILE = 'data/pub_rec_master_f2015-u2025.csv'
-DEGREE_PLANS_DIR = 'data/degree_plans'
-RECONCILIATION_FILE = 'data/Reconciliation.csv'
+DB_FILE = 'db/grade_data.db'
+CSV_FILE = 'data/raw/pub_rec_master_f2015-u2025.csv'
+DEGREE_PLANS_DIR = 'data/meta/degree_plans'
+RECONCILIATION_FILE = 'data/meta/Reconciliation.csv'
 
 # All columns that carry grade counts (TOT_NON_W is enrollment, not a grade)
 GRADE_COLS = [
