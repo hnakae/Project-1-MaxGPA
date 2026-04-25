@@ -168,6 +168,21 @@ export default function DashboardPage() {
         return r.json();
       })
       .then((data: Course[]) => {
+        // filters return courses by weather or not they are in major requirements. 
+        for (let i = data.length - 1; i >= 0; i--) {
+          let found = false;
+          for (const group of requirementGroups) {
+            for (const course of group["courses"]) {
+              if (course.code === data[i].code) {
+                found = true;
+                continue;
+              }
+            }
+          }
+          if (found === false){
+            data.splice(i, 1)
+          }
+        }
         setCourses(data);
         setLoading(false);
       })
