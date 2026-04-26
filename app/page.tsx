@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { FilterSidebar } from "./components/filter-sidebar";
 import { KpiCard } from "./components/kpi-card";
 import { CourseCard } from "./components/course-card";
-import { Check, CheckCircle2, Circle, Download, Save } from "lucide-react";
+import { Check, CheckCircle2, Circle, Download, Save, X } from "lucide-react";
 import * as Switch from "@radix-ui/react-switch";
-import { savePlan, getDraftItems, addDraftItem, clearDraft } from "./lib/saved-plans";
+import { savePlan, getDraftItems, addDraftItem, removeDraftItem, clearDraft } from "./lib/saved-plans";
 import type { PlanItem } from "./lib/saved-plans";
 import { isGroupMet, allGroupsMet, groupBySequence } from "./lib/requirements";
 import type { RequirementGroup } from "./lib/requirements";
@@ -49,7 +49,7 @@ export default function DashboardPage() {
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
 
   useEffect(() => {
-    setPlanItems(getDraftItems());
+    clearDraft();
   }, []);
 
   useEffect(() => {
@@ -62,6 +62,11 @@ export default function DashboardPage() {
 
   const handleAddToPlan = (item: PlanItem) => {
     const updated = addDraftItem(item);
+    setPlanItems(updated);
+  };
+
+  const handleRemoveFromPlan = (code: string, instructor: string) => {
+    const updated = removeDraftItem(code, instructor);
     setPlanItems(updated);
   };
 
@@ -153,8 +158,15 @@ export default function DashboardPage() {
       return;
     }
 
+    // Collect all subjects needed: the selected major plus any subjects present in requirements
+    const reqSubjects = new Set(
+      requirementGroups.flatMap((g) => g.courses.map((c) => c.code.split(" ")[0]))
+    );
+    if (selectedSubject) reqSubjects.add(selectedSubject);
+    const subjectsParam = Array.from(reqSubjects).join(",");
+
     const params = new URLSearchParams();
-    if (selectedSubject) params.set("subject", selectedSubject);
+    if (subjectsParam) params.set("subjects", subjectsParam);
     params.set("years", selectedYears.join(","));
     if (searchQuery) params.set("search", searchQuery);
     if (viewMode === "specific" && selectedInstructor) params.set("instructor", selectedInstructor);
@@ -168,21 +180,6 @@ export default function DashboardPage() {
         return r.json();
       })
       .then((data: Course[]) => {
-        // filters return courses by weather or not they are in major requirements. 
-        for (let i = data.length - 1; i >= 0; i--) {
-          let found = false;
-          for (const group of requirementGroups) {
-            for (const course of group["courses"]) {
-              if (course.code === data[i].code) {
-                found = true;
-                continue;
-              }
-            }
-          }
-          if (found === false){
-            data.splice(i, 1)
-          }
-        }
         setCourses(data);
         setLoading(false);
       })
@@ -190,18 +187,30 @@ export default function DashboardPage() {
         setError(err.message ?? "Failed to load courses");
         setLoading(false);
       });
-  }, [selectedSubject, selectedYears, searchQuery, viewMode, selectedInstructor]);
+  }, [selectedSubject, selectedYears, searchQuery, viewMode, selectedInstructor, requirementGroups]);
+
+  const requiredCodes = new Set(requirementGroups.flatMap((g) => g.courses.map((c) => c.code)));
+
+  // 0 = selected-subject requirements, 1 = other-subject requirements, 2 = non-required selected-subject courses
+  const courseOrder = (c: Course): number => {
+    const isSelectedSubject = c.code.startsWith(selectedSubject + " ");
+    if (requiredCodes.has(c.code) && isSelectedSubject) return 0;
+    if (requiredCodes.has(c.code)) return 1;
+    return 2;
+  };
+
+  const displayedCourses = courses
+    .filter((c) => c.code.startsWith(selectedSubject + " ") || requiredCodes.has(c.code))
+    .sort((a, b) => courseOrder(a) - courseOrder(b));
 
   const avgGpa =
-    courses.length > 0
-      ? courses.reduce((sum, c) => sum + c.avgGpa, 0) / courses.length
+    displayedCourses.length > 0
+      ? displayedCourses.reduce((sum, c) => sum + c.avgGpa, 0) / displayedCourses.length
       : 0;
 
   const yearsLabel = selectedYears.length > 0 ? selectedYears.join(", ") : "All years";
   const instructorLabel =
     viewMode === "specific" && selectedInstructor ? selectedInstructor : "All instructors";
-
-  const requiredCodes = new Set(requirementGroups.flatMap((g) => g.courses.map((c) => c.code)));
 
   return (
     <>
@@ -376,21 +385,43 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Save Plan button */}
-              <div className="shrink-0">
+              {/* Plan list + Save */}
+              <div className="shrink-0 w-56 flex flex-col gap-2">
+                <p className="text-sm font-medium text-slate-700">
+                  Your Plan{planItems.length > 0 ? ` (${planItems.length})` : ""}
+                </p>
+
+                {planItems.length === 0 ? (
+                  <p className="text-xs text-slate-400">No classes added yet.</p>
+                ) : (
+                  <ul className="space-y-1 max-h-52 overflow-y-auto pr-1">
+                    {planItems.map((item) => (
+                      <li
+                        key={`${item.code}-${item.instructor}`}
+                        className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 bg-slate-50 border border-slate-100"
+                      >
+                        <span className="text-xs font-semibold text-slate-700 shrink-0">{item.code}</span>
+                        <span className="text-xs text-slate-400 truncate flex-1">{item.instructor}</span>
+                        <button
+                          onClick={() => handleRemoveFromPlan(item.code, item.instructor)}
+                          className="shrink-0 text-slate-300 hover:text-rose-500 transition-colors"
+                          aria-label={`Remove ${item.code}`}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
                 <button
                   onClick={openSaveModal}
                   disabled={!canSave}
                   title={!canSave && requirementGroups.length > 0 ? "Complete all requirement sections to enable saving" : undefined}
-                  className="flex items-center gap-2 px-5 py-2.5 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="mt-1 flex items-center gap-2 px-5 py-2.5 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed self-start"
                 >
                   <Save className="w-4 h-4" />
                   Save Plan
-                  {planItems.length > 0 && (
-                    <span className="ml-1 bg-emerald-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {planItems.length}
-                    </span>
-                  )}
                 </button>
               </div>
             </div>
@@ -400,11 +431,11 @@ export default function DashboardPage() {
             <KpiCard
               title="Average Course GPA"
               value={avgGpa > 0 ? avgGpa.toFixed(2) : "—"}
-              subtitle={`Across ${courses.length} courses`}
+              subtitle={`Across ${displayedCourses.length} courses`}
             />
             <KpiCard
               title="Total Courses"
-              value={String(courses.length)}
+              value={String(displayedCourses.length)}
               subtitle={selectedSubject ? `Major: ${majorLabel}` : "All subjects"}
             />
           </div>
@@ -422,11 +453,11 @@ export default function DashboardPage() {
               </p>
             )}
 
-            {!loading && !error && courses.length === 0 && (
+            {!loading && !error && displayedCourses.length === 0 && (
               <p className="text-slate-500 text-sm">No courses match the current filters.</p>
             )}
 
-            {courses.map((course) => (
+            {displayedCourses.map((course) => (
               <CourseCard
                 key={course.code}
                 code={course.code}

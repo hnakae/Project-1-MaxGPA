@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { GradeDistributionChart } from "./grade-distribution-chart";
-import { Star, TrendingUp, TrendingDown, Users, Plus, Check, BookMarked } from "lucide-react";
+import { Star, TrendingUp, TrendingDown, Users, Plus, Check, BookMarked, ChevronDown } from "lucide-react";
 import type { GradeEntry, PlanItem } from "../lib/saved-plans";
 
 interface InstructorRow {
@@ -51,6 +51,7 @@ export function CourseCard({
   onAddToPlan,
 }: CourseCardProps) {
   const [topInstructors, setTopInstructors] = useState<InstructorRow[]>([]);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     if (!showInstructors) return;
@@ -76,8 +77,11 @@ export function CourseCard({
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden course-card-print">
       <div className="p-6">
-        {/* Header */}
-        <div className="mb-6 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        {/* Header — click to collapse / expand */}
+        <div
+          className="mb-6 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between cursor-pointer select-none"
+          onClick={() => setCollapsed((c) => !c)}
+        >
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <h3 className="text-slate-900">
@@ -105,7 +109,7 @@ export function CourseCard({
             )}
           </div>
 
-          <div className="flex flex-wrap gap-6 lg:ml-6 lg:justify-end">
+          <div className="flex flex-wrap items-start gap-6 lg:ml-6 lg:justify-end">
             <div className="text-right">
               <p className="text-sm text-slate-600 mb-1">Average GPA</p>
               <p className={`text-2xl font-semibold ${gpaColor(avgGpa)}`}>
@@ -121,11 +125,14 @@ export function CourseCard({
                 </div>
               </div>
             )}
+            <ChevronDown
+              className={`w-4 h-4 text-slate-400 mt-1 transition-transform duration-200 ${collapsed ? "-rotate-90" : ""}`}
+            />
           </div>
         </div>
 
         {/* Top instructors */}
-        {showInstructors && topInstructors.length > 0 && (
+        {!collapsed && showInstructors && topInstructors.length > 0 && (
           <div className="mb-4">
             <h4 className="text-sm font-medium text-slate-700 mb-3">
               Top {topInstructors.length} Instructors by GPA
@@ -163,7 +170,13 @@ export function CourseCard({
 
                     {onAddToPlan && (
                       <button
-                        onClick={() => !added && onAddToPlan({ code, instructor: row.instructor, avgGpa: row.avgGpa, gradeData: row.gradeData })}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!added) {
+                            onAddToPlan({ code, instructor: row.instructor, avgGpa: row.avgGpa, gradeData: row.gradeData });
+                            setCollapsed(true);
+                          }
+                        }}
                         className={`shrink-0 flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                           added
                             ? "bg-emerald-100 text-emerald-700 cursor-default"
@@ -181,7 +194,7 @@ export function CourseCard({
         )}
 
         {/* Grade distribution chart */}
-        <div className="bg-slate-50 rounded-lg p-4">
+        {!collapsed && <div className="bg-slate-50 rounded-lg p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h4 className="text-sm text-slate-700">Grade Distribution — All Instructors</h4>
             <p className="text-xs text-slate-600">{totalStudents} total students</p>
@@ -190,7 +203,7 @@ export function CourseCard({
           <p className="mt-2 text-center text-xs text-slate-500">
             Percentages calculated from all students (not averages of class averages)
           </p>
-        </div>
+        </div>}
       </div>
     </div>
   );

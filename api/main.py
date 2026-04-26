@@ -212,6 +212,7 @@ async def get_academic_years():
 @app.get("/api/courses")
 async def get_courses(
     subject: Optional[str] = None,
+    subjects: Optional[str] = None,
     years: Optional[str] = None,
     search: Optional[str] = None,
     instructor: Optional[str] = None,
@@ -221,7 +222,12 @@ async def get_courses(
     conditions: list[str] = []
     params: list = []
 
-    if subject:
+    if subjects:
+        subj_list = [s.strip() for s in subjects.split(",") if s.strip()]
+        placeholders = ",".join("?" * len(subj_list))
+        conditions.append(f"cr.Subject IN ({placeholders})")
+        params.extend(subj_list)
+    elif subject:
         conditions.append("cr.Subject = ?")
         params.append(subject)
 
@@ -264,7 +270,7 @@ async def get_courses(
         {where}
         GROUP BY cr.Subject, cr.CourseNumber
         ORDER BY cr.Subject, cr.CourseNumber
-        LIMIT 200
+        LIMIT 500
         """,
         params,
     ).fetchall()
