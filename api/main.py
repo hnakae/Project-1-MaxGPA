@@ -92,7 +92,6 @@ async def add_group(body: GroupIn):
 @app.delete("/api/requirement-groups/{group_id}")
 async def delete_group(group_id: int):
     conn = get_db()
-    conn.execute("DELETE FROM Major_Requirements WHERE GroupID = ?", (group_id,))
     conn.execute("DELETE FROM Requirement_Groups WHERE GroupID = ?", (group_id,))
     conn.commit()
     conn.close()
