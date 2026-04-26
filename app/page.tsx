@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { FilterSidebar } from "./components/filter-sidebar";
 import { KpiCard } from "./components/kpi-card";
 import { CourseCard } from "./components/course-card";
-import { Check, CheckCircle2, Circle, Download, Save, X } from "lucide-react";
+import { Check, CheckCircle2, Circle, Download, Save, X, Sparkles, Loader2 } from "lucide-react";
 import * as Switch from "@radix-ui/react-switch";
 import { savePlan, getDraftItems, addDraftItem, removeDraftItem, clearDraft } from "./lib/saved-plans";
 import type { PlanItem } from "./lib/saved-plans";
@@ -41,6 +41,7 @@ export default function DashboardPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [requirementGroups, setRequirementGroups] = useState<RequirementGroup[]>([]);
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -68,6 +69,82 @@ export default function DashboardPage() {
   const handleRemoveFromPlan = (code: string, instructor: string) => {
     const updated = removeDraftItem(code, instructor);
     setPlanItems(updated);
+  };
+
+  const handleGeneratePlan = async () => {
+    if (requirementGroups.length === 0) return;
+    setGenerating(true);
+    
+    try {
+      // 1. Get all course codes involved in requirements
+      const allCodes = Array.from(new Set(requirementGroups.flatMap(g => g.courses.map(c => c.code))));
+      
+      // 2. Fetch best instructors for all these courses in bulk
+      const resp = await fetch(`/api/bulk-best-instructors?codes=${encodeURIComponent(allCodes.join(","))}`);
+      if (!resp.ok) throw new Error("Failed to fetch best instructors");
+      const bestInstructors: Record<string, PlanItem> = await resp.json();
+
+      const newPlan: PlanItem[] = [];
+      const addedCodes = new Set<string>();
+
+      for (const group of requirementGroups) {
+        if (group.type === "all") {
+          for (const c of group.courses) {
+            if (bestInstructors[c.code] && !addedCodes.has(c.code)) {
+              newPlan.push({ ...bestInstructors[c.code], code: c.code });
+              addedCodes.add(c.code);
+            }
+          }
+        } else if (group.type === "choose_from") {
+          // Find the course in this group with the highest avgGpa among best instructors
+          let best: PlanItem | null = null;
+          for (const c of group.courses) {
+            const item = bestInstructors[c.code];
+            if (item && (!best || item.avgGpa > best.avgGpa)) {
+              best = { ...item, code: c.code };
+            }
+          }
+          if (best && !addedCodes.has(best.code)) {
+            newPlan.push(best);
+            addedCodes.add(best.code);
+          }
+        } else if (group.type === "one_sequence") {
+          const sequences = groupBySequence(group.courses);
+          let bestSeq: PlanItem[] = [];
+          let bestSeqAvg = -1;
+
+          for (const [tag, seqCourses] of Object.entries(sequences)) {
+            const seqItems = seqCourses
+              .map(c => bestInstructors[c.code] ? { ...bestInstructors[c.code], code: c.code } : null)
+              .filter((i): i is PlanItem => i !== null);
+            
+            if (seqItems.length === seqCourses.length) {
+              const avg = seqItems.reduce((s, i) => s + i.avgGpa, 0) / seqItems.length;
+              if (avg > bestSeqAvg) {
+                bestSeqAvg = avg;
+                bestSeq = seqItems;
+              }
+            }
+          }
+
+          for (const item of bestSeq) {
+            if (!addedCodes.has(item.code)) {
+              newPlan.push(item);
+              addedCodes.add(item.code);
+            }
+          }
+        }
+      }
+
+      // Update local draft
+      clearDraft();
+      newPlan.forEach(item => addDraftItem(item));
+      setPlanItems(newPlan);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const majorLabel = MAJOR_LABELS[selectedSubject] ?? selectedSubject;
@@ -191,12 +268,27 @@ export default function DashboardPage() {
 
   const requiredCodes = new Set(requirementGroups.flatMap((g) => g.courses.map((c) => c.code)));
 
-  // 0 = selected-subject requirements, 1 = other-subject requirements, 2 = non-required selected-subject courses
+  const scrollToCourse = (code: string) => {
+    const element = document.getElementById(`course-${code.replace(/\s+/g, "-")}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
+  const requiredCodesOrdered = requirementGroups.flatMap((g) => g.courses.map((c) => c.code));
+  const codeToIndex = new Map<string, number>();
+  requiredCodesOrdered.forEach((code, index) => {
+    if (!codeToIndex.has(code)) {
+      codeToIndex.set(code, index);
+    }
+  });
+
   const courseOrder = (c: Course): number => {
-    const isSelectedSubject = c.code.startsWith(selectedSubject + " ");
-    if (requiredCodes.has(c.code) && isSelectedSubject) return 0;
-    if (requiredCodes.has(c.code)) return 1;
-    return 2;
+    if (codeToIndex.has(c.code)) {
+      return codeToIndex.get(c.code)!;
+    }
+    // Non-required courses come after all requirements
+    return 10000 + (c.code.charCodeAt(0) * 100) + (parseInt(c.code.split(" ")[1]) || 0);
   };
 
   const displayedCourses = courses
@@ -297,9 +389,23 @@ export default function DashboardPage() {
               {/* Groups */}
               <div className="flex-1 space-y-4">
                 {requirementGroups.length > 0 && (
-                  <p className="text-sm font-medium text-slate-700">
-                    {majorLabel} Requirements — {metGroupCount}/{requirementGroups.length} sections complete
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-slate-700">
+                      {majorLabel} Requirements — {metGroupCount}/{requirementGroups.length} sections complete
+                    </p>
+                    <button
+                      onClick={handleGeneratePlan}
+                      disabled={generating}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                    >
+                      {generating ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5" />
+                      )}
+                      Generate Plan
+                    </button>
+                  </div>
                 )}
 
                 {requirementGroups.map((group) => {
@@ -327,9 +433,15 @@ export default function DashboardPage() {
                           {group.courses.map((c) => {
                             const courseMet = planCodes.has(c.code);
                             return (
-                              <span key={c.id} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                                courseMet ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
-                              }`}>
+                              <span
+                                key={c.id}
+                                onClick={() => scrollToCourse(c.code)}
+                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium cursor-pointer transition-colors ${
+                                  courseMet
+                                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                }`}
+                              >
                                 {courseMet ? <Check className="w-3 h-3" /> : <Circle className="w-3 h-3" />}
                                 {c.code}
                               </span>
@@ -350,7 +462,16 @@ export default function DashboardPage() {
                                     : "border-slate-200 bg-slate-50 text-slate-600"
                                 }`}>
                                   {seqMet && <Check className="w-3 h-3" />}
-                                  {courses.map((c) => c.code).join(" + ")}
+                                  {courses.map((c, i) => (
+                                    <span
+                                      key={c.id}
+                                      onClick={() => scrollToCourse(c.code)}
+                                      className="hover:underline cursor-pointer"
+                                    >
+                                      {c.code}
+                                      {i < courses.length - 1 ? " + " : ""}
+                                    </span>
+                                  ))}
                                 </span>
                                 {idx < arr.length - 1 && (
                                   <span className="text-xs text-slate-400 font-medium">OR</span>
@@ -366,9 +487,15 @@ export default function DashboardPage() {
                           {group.courses.map((c) => {
                             const courseMet = planCodes.has(c.code);
                             return (
-                              <span key={c.id} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                                courseMet ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
-                              }`}>
+                              <span
+                                key={c.id}
+                                onClick={() => scrollToCourse(c.code)}
+                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium cursor-pointer transition-colors ${
+                                  courseMet
+                                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                }`}
+                              >
                                 {courseMet && <Check className="w-3 h-3" />}
                                 {c.code}
                               </span>

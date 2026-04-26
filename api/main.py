@@ -188,6 +188,56 @@ async def get_course_instructors(code: str, limit: int = 5):
     return results
 
 
+@app.get("/api/bulk-best-instructors")
+async def get_bulk_best_instructors(codes: str):
+    code_list = [c.strip() for c in codes.split(",") if c.strip()]
+    if not code_list:
+        return {}
+
+    conn = get_db()
+    results = {}
+
+    for code in code_list:
+        parts = code.split(" ", 1)
+        subject = parts[0]
+        course_number = parts[1] if len(parts) > 1 else ""
+
+        row = conn.execute(
+            """
+            SELECT
+                Instructor,
+                SUM(Grade_A)   AS a,
+                SUM(Grade_B)   AS b,
+                SUM(Grade_C)   AS c,
+                SUM(Grade_DNF) AS dnf
+            FROM Course_Records
+            WHERE Subject = ? AND CourseNumber = ? AND Instructor IS NOT NULL
+            GROUP BY Instructor
+            HAVING (a + b + c + dnf) > 0
+            ORDER BY (a * 4.0 + b * 3.0 + c * 2.0) / (a + b + c + dnf) DESC
+            LIMIT 1
+            """,
+            (subject, course_number),
+        ).fetchone()
+
+        if row:
+            a, b, c, dnf = row["a"] or 0, row["b"] or 0, row["c"] or 0, row["dnf"] or 0
+            total = a + b + c + dnf
+            avg_gpa = (a * 4.0 + b * 3.0 + c * 2.0) / total
+            results[code] = {
+                "instructor": row["Instructor"],
+                "avgGpa": round(avg_gpa, 2),
+                "gradeData": [
+                    {"grade": "A",   "count": a,   "percentage": round(a   / total * 100, 1)},
+                    {"grade": "B",   "count": b,   "percentage": round(b   / total * 100, 1)},
+                    {"grade": "C",   "count": c,   "percentage": round(c   / total * 100, 1)},
+                    {"grade": "DNF", "count": dnf, "percentage": round(dnf / total * 100, 1)},
+                ],
+            }
+    conn.close()
+    return results
+
+
 @app.get("/api/subjects")
 async def get_subjects():
     conn = get_db()

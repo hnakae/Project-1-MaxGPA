@@ -75,7 +75,7 @@ export function CourseCard({
     planItems.some((i) => i.code === code && i.instructor === instructor);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden course-card-print">
+    <div id={`course-${code.replace(/\s+/g, "-")}`} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden course-card-print">
       <div className="p-6">
         {/* Header — click to collapse / expand */}
         <div
