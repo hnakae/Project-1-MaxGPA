@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<"all" | "specific">("all");
   const [selectedInstructor, setSelectedInstructor] = useState<string>("");
   const [instructors, setInstructors] = useState<string[]>([]);
+  const [planGrades, setPlanGrades] = useState<number[]>([]);
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [requirementGroups, setRequirementGroups] = useState<RequirementGroup[]>([]);
@@ -64,6 +65,7 @@ export default function DashboardPage() {
   const handleAddToPlan = (item: PlanItem) => {
     const updated = addDraftItem(item);
     setPlanItems(updated);
+    setPlanGrades(updated.map(X => X["avgGpa"])); 
   };
 
   const handleRemoveFromPlan = (code: string, instructor: string) => {
@@ -140,6 +142,8 @@ export default function DashboardPage() {
       clearDraft();
       newPlan.forEach(item => addDraftItem(item));
       setPlanItems(newPlan);
+      setPlanGrades(newPlan.map(X => X["avgGpa"]));
+      console.log(newPlan.map(X => X["avgGpa"]))
     } catch (err) {
       console.error(err);
     } finally {
@@ -517,7 +521,9 @@ export default function DashboardPage() {
                 <p className="text-sm font-medium text-slate-700">
                   Your Plan{planItems.length > 0 ? ` (${planItems.length})` : ""}
                 </p>
-
+                <p className="text-sm font-medium text-slate-700">
+                  Expected GPA{planGrades.length > 0 ? ` ${(planGrades.reduce((sum, current) => sum + current, 0) / planGrades.length).toFixed(2)}` : "—"}
+                </p>
                 {planItems.length === 0 ? (
                   <p className="text-xs text-slate-400">No classes added yet.</p>
                 ) : (
