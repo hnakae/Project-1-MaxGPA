@@ -71,6 +71,7 @@ export default function DashboardPage() {
   const handleRemoveFromPlan = (code: string, instructor: string) => {
     const updated = removeDraftItem(code, instructor);
     setPlanItems(updated);
+    setPlanGrades(updated.map(X => X["avgGpa"])); 
   };
 
   const handleGeneratePlan = async () => {
@@ -143,7 +144,6 @@ export default function DashboardPage() {
       newPlan.forEach(item => addDraftItem(item));
       setPlanItems(newPlan);
       setPlanGrades(newPlan.map(X => X["avgGpa"]));
-      console.log(newPlan.map(X => X["avgGpa"]))
     } catch (err) {
       console.error(err);
     } finally {
