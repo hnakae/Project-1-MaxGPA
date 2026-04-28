@@ -9,7 +9,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    include: ['tests/frontend/**/*.{test,spec}.{ts,tsx}'],
+    include: ['tests/**/*.test.{ts,tsx}'],
   },
   resolve: {
     alias: {

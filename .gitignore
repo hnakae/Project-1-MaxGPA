@@ -44,8 +44,12 @@ yarn-error.log*
 next-env.d.ts
 
 # python
-api/__pycache__/
+__pycache__/
 *.py[cod]
 *$py.class
 api/venv/
 venv/
+
+# databases
+*.db
+!db/grade_data.db
