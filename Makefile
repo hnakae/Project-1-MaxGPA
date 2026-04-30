@@ -31,7 +31,7 @@ test-fe:
 	npm run test
 
 test-be:
-	pytest tests/backend
+	pytest tests/api_tests
 
 # Linting
 lint:

@@ -1,3 +1,6 @@
+// Hiro tests frontend functional requirements
+
+
 import { expect, test, vi } from 'vitest';
 import { fetchCourseStats } from '@/app/actions';
 
