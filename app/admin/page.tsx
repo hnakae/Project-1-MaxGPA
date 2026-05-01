@@ -238,7 +238,7 @@ export default function AdminPage() {
                   </button>
                   <button
                     onClick={() => handleDeleteGroup(group.groupId)}
-                    className="shrink-0 flex items-center gap-1 rounded-full px-3 py-1 text-xs text-rose-600 hover:bg-rose-50 transition-colors"
+                    className="shrink-0 flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium text-rose-600 border border-rose-200 hover:bg-rose-50 transition-colors"
                   >
                     <Trash2 className="w-3 h-3" />
                     Delete group
@@ -263,7 +263,7 @@ export default function AdminPage() {
                           <span className="flex-1 text-sm text-slate-500 truncate">{c.name ?? "—"}</span>
                           <button
                             onClick={() => handleRemoveCourse(group.groupId, c.id)}
-                            className="shrink-0 text-xs text-rose-500 hover:text-rose-700 transition-colors"
+                            className="shrink-0 text-xs font-medium text-rose-500 hover:text-rose-700 transition-colors"
                           >
                             Remove
                           </button>
@@ -276,7 +276,7 @@ export default function AdminPage() {
                       {!addingHere ? (
                         <button
                           onClick={() => openAddCourse(group)}
-                          className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                          className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors"
                         >
                           <Plus className="w-4 h-4" />
                           Add course to this group
@@ -321,13 +321,13 @@ export default function AdminPage() {
                           <button
                             onClick={() => handleAddCourse(group)}
                             disabled={!state.selectedCourse}
-                            className="rounded-full px-3 py-1.5 text-sm text-white btn-forest disabled:opacity-50"
+                            className="rounded-full px-3 py-1.5 text-sm font-medium text-white btn-forest disabled:opacity-50"
                           >
                             Add
                           </button>
                           <button
                             onClick={() => closeAddCourse(group.groupId)}
-                            className="text-sm text-slate-400 hover:text-slate-600"
+                            className="px-2 py-1.5 text-sm font-medium text-slate-400 hover:text-slate-600 transition-colors"
                           >
                             Cancel
                           </button>
@@ -364,7 +364,7 @@ export default function AdminPage() {
               <button
                 onClick={handleAddGroup}
                 disabled={!newGroupName.trim() || addingGroup}
-                className="flex items-center gap-2 rounded-full px-4 py-2 text-sm text-white btn-forest disabled:opacity-50"
+                className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white btn-forest disabled:opacity-50"
               >
                 <Plus className="w-4 h-4" />
                 {addingGroup ? "Adding…" : "Add Group"}

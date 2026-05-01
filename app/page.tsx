@@ -86,6 +86,12 @@ export default function DashboardPage() {
     setPlanGrades(updated.map(X => X["avgGpa"]));
   };
 
+  const handleClearPlan = () => {
+    clearDraft(selectedSubject);
+    setPlanItems([]);
+    setPlanGrades([]);
+  };
+
   const handleGeneratePlan = async () => {
     if (requirementGroups.length === 0) return;
     setGenerating(true);
@@ -364,7 +370,7 @@ export default function DashboardPage() {
             <button
               onClick={handleExport}
               disabled={exporting}
-              className="flex items-center gap-2 px-5 py-2.5 text-white rounded-full btn-forest disabled:opacity-60"
+              className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white btn-forest disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
               {exporting ? "Generating…" : "Export Report"}
@@ -377,23 +383,9 @@ export default function DashboardPage() {
               {/* Groups */}
               <div className="flex-1 space-y-4">
                 {requirementGroups.length > 0 && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-slate-700">
-                      {majorLabel} Requirements — {metGroupCount}/{requirementGroups.length} sections complete
-                    </p>
-                    <button
-                      onClick={handleGeneratePlan}
-                      disabled={generating}
-                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                    >
-                      {generating ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-3.5 h-3.5" />
-                      )}
-                      Generate Plan
-                    </button>
-                  </div>
+                  <p className="text-sm font-medium text-slate-700">
+                    {majorLabel} Requirements — {metGroupCount}/{requirementGroups.length} sections complete
+                  </p>
                 )}
 
                 {requirementGroups.map((group) => {
@@ -508,6 +500,22 @@ export default function DashboardPage() {
                 <p className="text-sm font-medium text-slate-700">
                   Expected GPA{planGrades.length > 0 ? ` ${(planGrades.reduce((sum, current) => sum + current, 0) / planGrades.length).toFixed(2)}` : "—"}
                 </p>
+
+                {requirementGroups.length > 0 && (
+                  <button
+                    onClick={handleGeneratePlan}
+                    disabled={generating}
+                    className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-white btn-forest disabled:opacity-50 self-start"
+                  >
+                    {generating ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                    Generate Plan
+                  </button>
+                )}
+
                 {planItems.length === 0 ? (
                   <p className="text-xs text-slate-400">No classes added yet.</p>
                 ) : (
@@ -531,15 +539,25 @@ export default function DashboardPage() {
                   </ul>
                 )}
 
-                <button
-                  onClick={openSaveModal}
-                  disabled={!canSave}
-                  title={!canSave && requirementGroups.length > 0 ? "Complete all requirement sections to enable saving" : undefined}
-                  className="mt-1 flex items-center gap-2 px-5 py-2.5 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed self-start"
-                >
-                  <Save className="w-4 h-4" />
-                  Save Plan
-                </button>
+                <div className="mt-1 flex items-center gap-2">
+                  <button
+                    onClick={openSaveModal}
+                    disabled={!canSave}
+                    title={!canSave && requirementGroups.length > 0 ? "Complete all requirement sections to enable saving" : undefined}
+                    className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white btn-forest disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Save className="w-4 h-4" />
+                    Save Plan
+                  </button>
+                  {planItems.length > 0 && (
+                    <button
+                      onClick={handleClearPlan}
+                      className="rounded-full px-4 py-2 text-sm font-medium text-rose-600 border border-rose-200 hover:bg-rose-50 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -613,14 +631,14 @@ export default function DashboardPage() {
           <div className="flex gap-3 justify-end">
             <button
               onClick={() => setShowSaveModal(false)}
-              className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900"
+              className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={!planName.trim()}
-              className="px-5 py-2 text-sm text-white rounded-lg btn-forest disabled:opacity-50"
+              className="rounded-full px-4 py-2 text-sm font-medium text-white btn-forest disabled:opacity-50"
             >
               Save
             </button>

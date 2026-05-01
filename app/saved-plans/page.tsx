@@ -129,14 +129,14 @@ export default function SavedPlansPage() {
                 <button
                   onClick={() => handleExport(plan)}
                   disabled={exporting === plan.id}
-                  className="flex items-center gap-2 rounded-full btn-forest px-4 py-2 text-sm text-white disabled:opacity-60"
+                  className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white btn-forest disabled:opacity-50"
                 >
                   <Download className="w-4 h-4" />
                   {exporting === plan.id ? "Generating…" : "Export PDF"}
                 </button>
                 <button
                   onClick={() => handleDelete(plan.id)}
-                  className="flex items-center gap-2 rounded-full px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
+                  className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-rose-600 border border-rose-200 hover:bg-rose-50 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete
