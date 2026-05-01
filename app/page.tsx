@@ -51,8 +51,10 @@ export default function DashboardPage() {
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
 
   useEffect(() => {
-    clearDraft();
-  }, []);
+    const draft = getDraftItems(selectedSubject);
+    setPlanItems(draft);
+    setPlanGrades(draft.map((x) => x.avgGpa));
+  }, [selectedSubject]);
 
   useEffect(() => {
     if (!selectedSubject) return;
@@ -63,15 +65,15 @@ export default function DashboardPage() {
   }, [selectedSubject]);
 
   const handleAddToPlan = (item: PlanItem) => {
-    const updated = addDraftItem(item);
+    const updated = addDraftItem(item, selectedSubject);
     setPlanItems(updated);
-    setPlanGrades(updated.map(X => X["avgGpa"])); 
+    setPlanGrades(updated.map(X => X["avgGpa"]));
   };
 
   const handleRemoveFromPlan = (code: string, instructor: string) => {
-    const updated = removeDraftItem(code, instructor);
+    const updated = removeDraftItem(code, instructor, selectedSubject);
     setPlanItems(updated);
-    setPlanGrades(updated.map(X => X["avgGpa"])); 
+    setPlanGrades(updated.map(X => X["avgGpa"]));
   };
 
   const handleGeneratePlan = async () => {
@@ -140,8 +142,8 @@ export default function DashboardPage() {
       }
 
       // Update local draft
-      clearDraft();
-      newPlan.forEach(item => addDraftItem(item));
+      clearDraft(selectedSubject);
+      newPlan.forEach(item => addDraftItem(item, selectedSubject));
       setPlanItems(newPlan);
       setPlanGrades(newPlan.map(X => X["avgGpa"]));
     } catch (err) {
@@ -177,7 +179,7 @@ export default function DashboardPage() {
       items: planItems,
       avgGpa: Math.round(avg * 100) / 100,
     });
-    clearDraft();
+    clearDraft(selectedSubject);
     setPlanItems([]);
     setShowSaveModal(false);
     setSavedConfirm(true);

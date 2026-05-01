@@ -22,7 +22,7 @@ export interface SavedPlan {
 }
 
 const STORAGE_KEY = "maxgpa-saved-plans";
-const DRAFT_KEY   = "maxgpa-plan-draft";
+const draftKey = (subject: string) => `maxgpa-plan-draft-${subject}`;
 
 export function getSavedPlans(): SavedPlan[] {
   if (typeof window === "undefined") return [];
@@ -45,34 +45,34 @@ export function deletePlan(id: string): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 }
 
-export function getDraftItems(): PlanItem[] {
+export function getDraftItems(subject: string): PlanItem[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "[]");
+    return JSON.parse(localStorage.getItem(draftKey(subject)) ?? "[]");
   } catch {
     return [];
   }
 }
 
-export function addDraftItem(item: PlanItem): PlanItem[] {
-  const existing = getDraftItems();
+export function addDraftItem(item: PlanItem, subject: string): PlanItem[] {
+  const existing = getDraftItems(subject);
   const isDuplicate = existing.some(
     (i) => i.code === item.code && i.instructor === item.instructor
   );
   if (isDuplicate) return existing;
   const updated = [...existing, item];
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(updated));
+  localStorage.setItem(draftKey(subject), JSON.stringify(updated));
   return updated;
 }
 
-export function removeDraftItem(code: string, instructor: string): PlanItem[] {
-  const updated = getDraftItems().filter(
+export function removeDraftItem(code: string, instructor: string, subject: string): PlanItem[] {
+  const updated = getDraftItems(subject).filter(
     (i) => !(i.code === code && i.instructor === instructor)
   );
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(updated));
+  localStorage.setItem(draftKey(subject), JSON.stringify(updated));
   return updated;
 }
 
-export function clearDraft(): void {
-  localStorage.removeItem(DRAFT_KEY);
+export function clearDraft(subject: string): void {
+  localStorage.removeItem(draftKey(subject));
 }
