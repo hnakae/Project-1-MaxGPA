@@ -32,7 +32,11 @@ export function FilterSidebar({
   useEffect(() => {
     fetch("/api/academic-years")
       .then((r) => r.json())
-      .then(setAcademicYears)
+      .then((years: string[]) => {
+        const sorted = [...years].sort((a, b) => b.localeCompare(a));
+        setAcademicYears(sorted);
+        onYearsChange(sorted);
+      })
       .catch(() => {});
   }, []);
 
