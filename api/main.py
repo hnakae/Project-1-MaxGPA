@@ -19,8 +19,8 @@ _AY_EXPR = """
 """
 
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
+def get_db(db_path = DB_PATH):
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -41,8 +41,8 @@ class RequirementIn(BaseModel):
 
 
 @app.get("/api/requirements")
-async def get_requirements(major: str):
-    conn = get_db()
+async def get_requirements(major: str, db_path=DB_PATH):
+    conn = get_db(db_path=db_path)
     groups = conn.execute(
         "SELECT GroupID, GroupName, Type, SortOrder FROM Requirement_Groups WHERE Major = ? ORDER BY SortOrder",
         (major,),
@@ -77,8 +77,8 @@ async def get_requirements(major: str):
 
 
 @app.post("/api/requirement-groups")
-async def add_group(body: GroupIn):
-    conn = get_db()
+async def add_group(body: GroupIn, db_path=DB_PATH):
+    conn = get_db(db_path=db_path)
     cur = conn.execute(
         "INSERT INTO Requirement_Groups (Major, GroupName, Type, SortOrder) VALUES (?, ?, ?, ?)",
         (body.major, body.groupName, body.type, body.sortOrder),
@@ -90,8 +90,8 @@ async def add_group(body: GroupIn):
 
 
 @app.delete("/api/requirement-groups/{group_id}")
-async def delete_group(group_id: int):
-    conn = get_db()
+async def delete_group(group_id: int, db_path=DB_PATH):
+    conn = get_db(db_path=db_path)
     conn.execute("DELETE FROM Requirement_Groups WHERE GroupID = ?", (group_id,))
     conn.commit()
     conn.close()
@@ -99,9 +99,9 @@ async def delete_group(group_id: int):
 
 
 @app.post("/api/requirements")
-async def add_requirement(body: RequirementIn):
+async def add_requirement(body: RequirementIn, db_path=DB_PATH):
     parts = body.subject.strip(), body.courseNumber.strip()
-    conn = get_db()
+    conn = get_db(db_path=db_path)
     try:
         cur = conn.execute(
             "INSERT INTO Major_Requirements (GroupID, Major, Subject, CourseNumber, SequenceTag) VALUES (?, ?, ?, ?, ?)",
@@ -117,8 +117,8 @@ async def add_requirement(body: RequirementIn):
 
 
 @app.delete("/api/requirements/{req_id}")
-async def delete_requirement(req_id: int):
-    conn = get_db()
+async def delete_requirement(req_id: int, db_path=DB_PATH):
+    conn = get_db(db_path=db_path)
     conn.execute("DELETE FROM Major_Requirements WHERE ReqID = ?", (req_id,))
     conn.commit()
     conn.close()
