@@ -17,7 +17,7 @@ help:
 # Installation
 install:
 	npm install
-	cd api && python -m pip install -r requirements.txt
+	cd api && pip install -r requirements.txt
 
 # Development
 dev-fe:
@@ -31,7 +31,7 @@ test-fe:
 	npm run test
 
 test-be:
-	python -m pytest tests/api_tests
+	pytest tests/api_tests
 
 # Linting
 lint:
