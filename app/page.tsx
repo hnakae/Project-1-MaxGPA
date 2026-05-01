@@ -5,7 +5,6 @@ import { FilterSidebar } from "./components/filter-sidebar";
 import { KpiCard } from "./components/kpi-card";
 import { CourseCard } from "./components/course-card";
 import { Check, CheckCircle2, Circle, Download, Save, X, Sparkles, Loader2 } from "lucide-react";
-import * as Switch from "@radix-ui/react-switch";
 import { savePlan, getDraftItems, addDraftItem, removeDraftItem, clearDraft } from "./lib/saved-plans";
 import type { PlanItem } from "./lib/saved-plans";
 import { isGroupMet, allGroupsMet, groupBySequence } from "./lib/requirements";
@@ -30,11 +29,14 @@ const MAJOR_LABELS: Record<string, string> = {
   BA:   "Business",
 };
 
+const courseCache = new Map<string, Course[]>();
+const requirementsCache = new Map<string, RequirementGroup[]>();
+
 export default function DashboardPage() {
+  "use no memo";
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>("CS");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [viewMode, setViewMode] = useState<"all" | "specific">("all");
   const [selectedInstructor, setSelectedInstructor] = useState<string>("");
   const [instructors, setInstructors] = useState<string[]>([]);
   const [planGrades, setPlanGrades] = useState<number[]>([]);
@@ -58,9 +60,17 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!selectedSubject) return;
-    fetch(`/api/requirements?major=${selectedSubject}`)
+    const url = `/api/requirements?major=${selectedSubject}`;
+    if (requirementsCache.has(url)) {
+      setRequirementGroups(requirementsCache.get(url)!);
+      return;
+    }
+    fetch(url)
       .then((r) => r.json())
-      .then((data: RequirementGroup[]) => setRequirementGroups(data))
+      .then((data: RequirementGroup[]) => {
+        requirementsCache.set(url, data);
+        setRequirementGroups(data);
+      })
       .catch(() => setRequirementGroups([]));
   }, [selectedSubject]);
 
@@ -118,7 +128,7 @@ export default function DashboardPage() {
           let bestSeq: PlanItem[] = [];
           let bestSeqAvg = -1;
 
-          for (const [tag, seqCourses] of Object.entries(sequences)) {
+          for (const [, seqCourses] of Object.entries(sequences)) {
             const seqItems = seqCourses
               .map(c => bestInstructors[c.code] ? { ...bestInstructors[c.code], code: c.code } : null)
               .filter((i): i is PlanItem => i !== null);
@@ -223,15 +233,14 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (viewMode !== "specific") return;
-    fetch(`/api/instructors?${selectedSubject ? `subject=${selectedSubject}` : ""}`)
+    fetch(`/api/instructors?subject=${selectedSubject}`)
       .then((r) => r.json())
       .then((data: string[]) => {
         setInstructors(data);
         setSelectedInstructor("");
       })
       .catch(() => {});
-  }, [viewMode, selectedSubject]);
+  }, [selectedSubject]);
 
   useEffect(() => {
     if (selectedYears.length === 0) {
@@ -250,19 +259,29 @@ export default function DashboardPage() {
 
     const params = new URLSearchParams();
     if (subjectsParam) params.set("subjects", subjectsParam);
-    params.set("years", selectedYears.join(","));
+    params.set("years", [...selectedYears].sort().join(","));
     if (searchQuery) params.set("search", searchQuery);
-    if (viewMode === "specific" && selectedInstructor) params.set("instructor", selectedInstructor);
+    if (selectedInstructor) params.set("instructor", selectedInstructor);
+
+    const url = `/api/courses?${params.toString()}`;
+
+    if (courseCache.has(url)) {
+      setCourses(courseCache.get(url)!);
+      setLoading(false);
+      setError(null);
+      return;
+    }
 
     setLoading(true);
     setError(null);
 
-    fetch(`/api/courses?${params.toString()}`)
+    fetch(url)
       .then((r) => {
         if (!r.ok) throw new Error(`API error ${r.status}`);
         return r.json();
       })
       .then((data: Course[]) => {
+        courseCache.set(url, data);
         setCourses(data);
         setLoading(false);
       })
@@ -270,7 +289,7 @@ export default function DashboardPage() {
         setError(err.message ?? "Failed to load courses");
         setLoading(false);
       });
-  }, [selectedSubject, selectedYears, searchQuery, viewMode, selectedInstructor, requirementGroups]);
+  }, [selectedSubject, selectedYears, searchQuery, selectedInstructor, requirementGroups]);
 
   const requiredCodes = new Set(requirementGroups.flatMap((g) => g.courses.map((c) => c.code)));
 
@@ -307,8 +326,7 @@ export default function DashboardPage() {
       : 0;
 
   const yearsLabel = selectedYears.length > 0 ? selectedYears.join(", ") : "All years";
-  const instructorLabel =
-    viewMode === "specific" && selectedInstructor ? selectedInstructor : "All instructors";
+  const instructorLabel = selectedInstructor || "All instructors";
 
   return (
     <>
@@ -320,6 +338,9 @@ export default function DashboardPage() {
         onSubjectChange={setSelectedSubject}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        instructors={instructors}
+        selectedInstructor={selectedInstructor}
+        onInstructorChange={setSelectedInstructor}
       />
 
       <main className="flex-1 overflow-auto">
@@ -339,54 +360,15 @@ export default function DashboardPage() {
           </div>
 
           {/* Controls bar */}
-          <div className="mb-4 flex items-center justify-between print:hidden">
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-3 text-sm text-slate-700">
-                <span className="font-medium">View Mode:</span>
-                <div className="flex items-center gap-2">
-                  <span className={viewMode === "all" ? "text-forest-900 font-semibold" : "text-slate-500"}>
-                    All Instructors
-                  </span>
-                  <Switch.Root
-                    checked={viewMode === "specific"}
-                    onCheckedChange={(checked) => {
-                      setViewMode(checked ? "specific" : "all");
-                      if (!checked) setSelectedInstructor("");
-                    }}
-                    className="w-11 h-6 bg-slate-300 rounded-full relative data-[state=checked]:bg-emerald-600 transition-colors"
-                  >
-                    <Switch.Thumb className="block w-5 h-5 bg-white rounded-full shadow-md transform transition-transform translate-x-0.5 data-[state=checked]:translate-x-[22px]" />
-                  </Switch.Root>
-                  <span className={viewMode === "specific" ? "text-forest-900 font-semibold" : "text-slate-500"}>
-                    Specific Teacher
-                  </span>
-                </div>
-              </label>
-            </div>
-
-            {viewMode === "specific" && (
-              <select
-                value={selectedInstructor}
-                onChange={(e) => setSelectedInstructor(e.target.value)}
-                className="px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-56"
-              >
-                <option value="">Select an instructor…</option>
-                {instructors.map((name) => (
-                  <option key={name} value={name}>{name}</option>
-                ))}
-              </select>
-            )}
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="flex items-center gap-2 px-5 py-2.5 text-white rounded-full btn-forest disabled:opacity-60"
-              >
-                <Download className="w-4 h-4" />
-                {exporting ? "Generating…" : "Export Report"}
-              </button>
-            </div>
+          <div className="mb-4 flex items-center justify-end print:hidden">
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex items-center gap-2 px-5 py-2.5 text-white rounded-full btn-forest disabled:opacity-60"
+            >
+              <Download className="w-4 h-4" />
+              {exporting ? "Generating…" : "Export Report"}
+            </button>
           </div>
 
           {/* Requirements checklist + Save Plan */}
@@ -599,7 +581,7 @@ export default function DashboardPage() {
                 name={course.name}
                 avgGpa={course.avgGpa}
                 gradeData={course.gradeData}
-                instructors={viewMode === "specific" && selectedInstructor ? [selectedInstructor] : []}
+                instructors={selectedInstructor ? [selectedInstructor] : []}
                 showInstructors={true}
                 isRequired={requiredCodes.has(course.code)}
                 planItems={planItems}

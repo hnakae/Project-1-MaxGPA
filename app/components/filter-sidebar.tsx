@@ -11,6 +11,9 @@ interface FilterSidebarProps {
   onSubjectChange: (subject: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  instructors: string[];
+  selectedInstructor: string;
+  onInstructorChange: (instructor: string) => void;
 }
 
 const MAJORS = [
@@ -26,6 +29,9 @@ export function FilterSidebar({
   onSubjectChange,
   searchQuery,
   onSearchChange,
+  instructors,
+  selectedInstructor,
+  onInstructorChange,
 }: FilterSidebarProps) {
   const [academicYears, setAcademicYears] = useState<string[]>([]);
 
@@ -53,7 +59,7 @@ export function FilterSidebar({
       <div className="p-6">
         <h3 className="text-slate-900 mb-6">Filters</h3>
 
-        <Accordion.Root type="multiple" defaultValue={["year", "subject", "course"]} className="space-y-4">
+        <Accordion.Root type="multiple" defaultValue={["year", "subject", "course", "instructor"]} className="space-y-4">
 
           <Accordion.Item value="subject" className="border border-slate-200 rounded-lg overflow-hidden">
             <Accordion.Header>
@@ -146,6 +152,27 @@ export function FilterSidebar({
                   className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
               </div>
+            </Accordion.Content>
+          </Accordion.Item>
+
+          <Accordion.Item value="instructor" className="border border-slate-200 rounded-lg overflow-hidden">
+            <Accordion.Header>
+              <Accordion.Trigger className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group">
+                <span className="font-medium text-slate-900">Instructor</span>
+                <ChevronDown className="w-5 h-5 text-slate-500 transition-transform group-data-[state=open]:rotate-180" />
+              </Accordion.Trigger>
+            </Accordion.Header>
+            <Accordion.Content className="p-4 pt-0 bg-slate-50">
+              <select
+                value={selectedInstructor}
+                onChange={(e) => onInstructorChange(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="">All instructors</option>
+                {instructors.map((name) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
             </Accordion.Content>
           </Accordion.Item>
 
