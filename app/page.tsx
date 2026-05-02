@@ -105,53 +105,86 @@ export default function DashboardPage() {
       if (!resp.ok) throw new Error("Failed to fetch best instructors");
       const bestInstructors: Record<string, PlanItem> = await resp.json();
 
+      // Preserve manual selections — generate only fills in what isn't already chosen
+      const existingByCode = new Map<string, PlanItem>();
+      for (const item of planItems) {
+        existingByCode.set(item.code, item);
+      }
+
       const newPlan: PlanItem[] = [];
       const addedCodes = new Set<string>();
 
       for (const group of requirementGroups) {
         if (group.type === "all") {
           for (const c of group.courses) {
-            if (bestInstructors[c.code] && !addedCodes.has(c.code)) {
-              newPlan.push({ ...bestInstructors[c.code], code: c.code });
-              addedCodes.add(c.code);
-            }
-          }
-        } else if (group.type === "choose_from") {
-          // Find the course in this group with the highest avgGpa among best instructors
-          let best: PlanItem | null = null;
-          for (const c of group.courses) {
-            const item = bestInstructors[c.code];
-            if (item && (!best || item.avgGpa > best.avgGpa)) {
-              best = { ...item, code: c.code };
-            }
-          }
-          if (best && !addedCodes.has(best.code)) {
-            newPlan.push(best);
-            addedCodes.add(best.code);
-          }
-        } else if (group.type === "one_sequence") {
-          const sequences = groupBySequence(group.courses);
-          let bestSeq: PlanItem[] = [];
-          let bestSeqAvg = -1;
-
-          for (const [, seqCourses] of Object.entries(sequences)) {
-            const seqItems = seqCourses
-              .map(c => bestInstructors[c.code] ? { ...bestInstructors[c.code], code: c.code } : null)
-              .filter((i): i is PlanItem => i !== null);
-            
-            if (seqItems.length === seqCourses.length) {
-              const avg = seqItems.reduce((s, i) => s + i.avgGpa, 0) / seqItems.length;
-              if (avg > bestSeqAvg) {
-                bestSeqAvg = avg;
-                bestSeq = seqItems;
+            if (!addedCodes.has(c.code)) {
+              const item = existingByCode.get(c.code) ?? bestInstructors[c.code];
+              if (item) {
+                newPlan.push({ ...item, code: c.code });
+                addedCodes.add(c.code);
               }
             }
           }
+        } else if (group.type === "choose_from") {
+          const existingChoice = group.courses.find(c => existingByCode.has(c.code));
+          if (existingChoice && !addedCodes.has(existingChoice.code)) {
+            newPlan.push(existingByCode.get(existingChoice.code)!);
+            addedCodes.add(existingChoice.code);
+          } else {
+            let best: PlanItem | null = null;
+            for (const c of group.courses) {
+              const item = bestInstructors[c.code];
+              if (item && (!best || item.avgGpa > best.avgGpa)) {
+                best = { ...item, code: c.code };
+              }
+            }
+            if (best && !addedCodes.has(best.code)) {
+              newPlan.push(best);
+              addedCodes.add(best.code);
+            }
+          }
+        } else if (group.type === "one_sequence") {
+          const sequences = groupBySequence(group.courses);
 
-          for (const item of bestSeq) {
-            if (!addedCodes.has(item.code)) {
-              newPlan.push(item);
-              addedCodes.add(item.code);
+          // If the user already has all courses of a complete sequence, keep it
+          let existingSeq: PlanItem[] | null = null;
+          for (const [, seqCourses] of Object.entries(sequences)) {
+            if (seqCourses.every(c => existingByCode.has(c.code))) {
+              existingSeq = seqCourses.map(c => existingByCode.get(c.code)!);
+              break;
+            }
+          }
+
+          if (existingSeq) {
+            for (const item of existingSeq) {
+              if (!addedCodes.has(item.code)) {
+                newPlan.push(item);
+                addedCodes.add(item.code);
+              }
+            }
+          } else {
+            let bestSeq: PlanItem[] = [];
+            let bestSeqAvg = -1;
+
+            for (const [, seqCourses] of Object.entries(sequences)) {
+              const seqItems = seqCourses
+                .map(c => bestInstructors[c.code] ? { ...bestInstructors[c.code], code: c.code } : null)
+                .filter((i): i is PlanItem => i !== null);
+
+              if (seqItems.length === seqCourses.length) {
+                const avg = seqItems.reduce((s, i) => s + i.avgGpa, 0) / seqItems.length;
+                if (avg > bestSeqAvg) {
+                  bestSeqAvg = avg;
+                  bestSeq = seqItems;
+                }
+              }
+            }
+
+            for (const item of bestSeq) {
+              if (!addedCodes.has(item.code)) {
+                newPlan.push(item);
+                addedCodes.add(item.code);
+              }
             }
           }
         }
@@ -493,38 +526,26 @@ export default function DashboardPage() {
               </div>
 
               {/* Plan list + Save */}
-              <div className="shrink-0 w-56 flex flex-col gap-2">
-                <p className="text-sm font-medium text-slate-700">
-                  Your Plan{planItems.length > 0 ? ` (${planItems.length})` : ""}
-                </p>
-                <p className="text-sm font-medium text-slate-700">
-                  Expected GPA{planGrades.length > 0 ? ` ${(planGrades.reduce((sum, current) => sum + current, 0) / planGrades.length).toFixed(2)}` : "—"}
-                </p>
+              <div className="shrink-0 w-80 flex flex-col gap-3 border-t sm:border-t-0 sm:border-l border-slate-100 pt-4 sm:pt-0 sm:pl-5">
+                {/* Header row */}
+                <div className="flex items-baseline justify-between">
+                  <p className="text-sm font-semibold text-slate-700">
+                    Your Plan{planItems.length > 0 ? ` (${planItems.length})` : ""}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Avg GPA: <span className="font-semibold text-slate-700">{planGrades.length > 0 ? (planGrades.reduce((sum, current) => sum + current, 0) / planGrades.length).toFixed(2) : "—"}</span>
+                  </p>
+                </div>
 
-                {requirementGroups.length > 0 && (
-                  <button
-                    onClick={handleGeneratePlan}
-                    disabled={generating}
-                    className="self-start relative flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 shadow-lg shadow-violet-500/40 hover:shadow-xl hover:shadow-violet-500/60 hover:brightness-110 active:scale-[0.97] transition-all duration-200 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 overflow-hidden group"
-                  >
-                    <span className="absolute inset-0 bg-gradient-to-r from-violet-400/20 via-transparent to-indigo-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-full" />
-                    {generating ? (
-                      <Loader2 className="w-4 h-4 animate-spin relative z-10" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-200" />
-                    )}
-                    <span className="relative z-10">Generate Plan</span>
-                  </button>
-                )}
-
+                {/* Course list */}
                 {planItems.length === 0 ? (
                   <p className="text-xs text-slate-400">No classes added yet.</p>
                 ) : (
-                  <ul className="space-y-1 max-h-52 overflow-y-auto pr-1">
+                  <ul className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
                     {planItems.map((item) => (
                       <li
                         key={`${item.code}-${item.instructor}`}
-                        className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 bg-slate-50 border border-slate-100"
+                        className="flex items-center gap-2 rounded-lg px-3 py-2 bg-slate-50 border border-slate-100"
                       >
                         <span className="text-xs font-semibold text-slate-700 shrink-0">{item.code}</span>
                         <span className="text-xs text-slate-400 truncate flex-1">{item.instructor}</span>
@@ -540,7 +561,23 @@ export default function DashboardPage() {
                   </ul>
                 )}
 
-                <div className="mt-1 flex items-center gap-2">
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {requirementGroups.length > 0 && (
+                    <button
+                      onClick={handleGeneratePlan}
+                      disabled={generating}
+                      className="relative flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 shadow-md shadow-violet-500/30 hover:brightness-110 active:scale-[0.97] transition-all duration-200 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 overflow-hidden group"
+                    >
+                      <span className="absolute inset-0 bg-gradient-to-r from-violet-400/20 via-transparent to-indigo-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-full" />
+                      {generating ? (
+                        <Loader2 className="w-4 h-4 animate-spin relative z-10" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-200" />
+                      )}
+                      <span className="relative z-10">Generate Plan</span>
+                    </button>
+                  )}
                   <button
                     onClick={openSaveModal}
                     disabled={!canSave}
