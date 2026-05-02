@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FilterSidebar } from "./components/filter-sidebar";
-import { KpiCard } from "./components/kpi-card";
 import { CourseCard } from "./components/course-card";
-import { Check, CheckCircle2, Circle, Download, Save, X, Sparkles, Loader2 } from "lucide-react";
+import { Check, CheckCircle2, Circle, Download, Save, X, Sparkles, Loader2, ArrowUpDown } from "lucide-react";
 import { savePlan, getDraftItems, addDraftItem, removeDraftItem, clearDraft } from "./lib/saved-plans";
 import type { PlanItem } from "./lib/saved-plans";
 import { isGroupMet, allGroupsMet, groupBySequence } from "./lib/requirements";
@@ -30,6 +29,8 @@ interface Course {
   gradeData: GradeEntry[];
 }
 
+type SortOrder = "default" | "gpa-asc" | "gpa-desc" | "students-asc" | "students-desc";
+
 const MAJOR_LABELS: Record<string, string> = {
   CS:   "Computer Science",
   MATH: "Mathematics",
@@ -45,6 +46,7 @@ export default function DashboardPage() {
   const [selectedSubject, setSelectedSubject] = useState<string>("CS");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedInstructor, setSelectedInstructor] = useState<string>("");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("default");
   const [instructors, setInstructors] = useState<string[]>([]);
   const [planGrades, setPlanGrades] = useState<number[]>([]);
 
@@ -420,17 +422,40 @@ export default function DashboardPage() {
     return 10000 + (c.code.charCodeAt(0) * 100) + (parseInt(c.code.split(" ")[1]) || 0);
   };
 
-  const displayedCourses = courses
-    .filter((c) => c.code.startsWith(selectedSubject + " ") || requiredCodes.has(c.code))
+  const filteredCourses = courses
+    .filter((c) => {
+      const matchesDivision = c.code.startsWith(selectedSubject + " ") || requiredCodes.has(c.code);
+      return matchesDivision;
+    })
     .sort((a, b) => courseOrder(a) - courseOrder(b));
 
   const avgGpa =
-    displayedCourses.length > 0
-      ? displayedCourses.reduce((sum, c) => sum + c.avgGpa, 0) / displayedCourses.length
+    filteredCourses.length > 0
+      ? filteredCourses.reduce((sum, c) => sum + c.avgGpa, 0) / filteredCourses.length
       : 0;
 
   const yearsLabel = selectedYears.length > 0 ? selectedYears.join(", ") : "All years";
   const instructorLabel = selectedInstructor || "All instructors";
+
+  const getStudentCount = (c: Course) => (c.gradeData || []).reduce((sum, g) => sum + g.count, 0);
+
+  const sortFn = (a: Course, b: Course) => {
+    if (sortOrder === "gpa-asc") return a.avgGpa - b.avgGpa;
+    if (sortOrder === "gpa-desc") return b.avgGpa - a.avgGpa;
+    if (sortOrder === "students-asc") return getStudentCount(a) - getStudentCount(b);
+    if (sortOrder === "students-desc") return getStudentCount(b) - getStudentCount(a);
+    return courseOrder(a) - courseOrder(b);
+  };
+
+  const lowerDivReqs = filteredCourses
+    .filter(c => requiredCodes.has(c.code) && parseInt(c.code.split(" ")[1]) < 300)
+    .sort(sortFn);
+  const upperDivReqs = filteredCourses
+    .filter(c => requiredCodes.has(c.code) && parseInt(c.code.split(" ")[1]) >= 300)
+    .sort(sortFn);
+  const otherCourses = filteredCourses
+    .filter(c => !requiredCodes.has(c.code))
+    .sort(sortFn);
 
   return (
     <>
@@ -694,21 +719,35 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 mb-8">
-            <KpiCard
-              title="Average Course GPA"
-              value={avgGpa > 0 ? avgGpa.toFixed(2) : "—"}
-              subtitle={`Across ${displayedCourses.length} courses`}
-            />
-            <KpiCard
-              title="Total Courses"
-              value={String(displayedCourses.length)}
-              subtitle={selectedSubject ? `Major: ${majorLabel}` : "All subjects"}
-            />
-          </div>
+          <div className="space-y-12">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <h2 className="text-slate-900">Grade Distributions by Course</h2>
+                <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full border border-slate-200 print:hidden">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                    className="bg-transparent text-xs font-semibold text-slate-600 focus:outline-none cursor-pointer"
+                  >
+                    <option value="default">Default Sort</option>
+                    <option value="gpa-asc">GPA: Low to High</option>
+                    <option value="gpa-desc">GPA: High to Low</option>
+                    <option value="students-desc">Students: High to Low</option>
+                    <option value="students-asc">Students: Low to High</option>
+                  </select>
+                </div>
+              </div>
 
-          <div className="space-y-6">
-            <h2 className="text-slate-900">Grade Distributions by Course</h2>
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                <div className="bg-slate-100 px-3 py-1.5 rounded-full text-slate-600">
+                  Avg GPA: <span className="font-bold text-slate-900">{avgGpa > 0 ? avgGpa.toFixed(2) : "—"}</span>
+                </div>
+                <div className="bg-slate-100 px-3 py-1.5 rounded-full text-slate-600">
+                  Total Courses: <span className="font-bold text-slate-900">{filteredCourses.length}</span>
+                </div>
+              </div>
+            </div>
 
             {loading && (
               <p className="text-slate-500 text-sm">Loading courses…</p>
@@ -720,28 +759,103 @@ export default function DashboardPage() {
               </p>
             )}
 
-            {!loading && !error && displayedCourses.length === 0 && (
+            {!loading && !error && filteredCourses.length === 0 && (
               <p className="text-slate-500 text-sm">No courses match the current filters.</p>
             )}
 
-            {displayedCourses.map((course) => (
-              <CourseCard
-                key={course.code}
-                code={course.code}
-                name={course.name}
-                avgGpa={course.avgGpa}
-                gradeData={course.gradeData}
-                instructors={selectedInstructor ? [selectedInstructor] : []}
-                showInstructors={true}
-                isRequired={requiredCodes.has(course.code)}
-                planItems={planItems}
-                onAddToPlan={handleAddToPlan}
-                onSwapInPlan={(newItem) => {
-                  const current = planItems.find((i) => i.code === newItem.code);
-                  if (current) handleSwap(newItem.code, current.instructor, newItem);
-                }}
-              />
-            ))}
+            {!loading && !error && filteredCourses.length > 0 && (
+              <div className="space-y-16">
+                {lowerDivReqs.length > 0 && (
+                  <section>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="h-px flex-1 bg-slate-200"></div>
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Lower-Division Requirements</h3>
+                      <div className="h-px flex-1 bg-slate-200"></div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {lowerDivReqs.map((course) => (
+                        <CourseCard
+                          key={course.code}
+                          code={course.code}
+                          name={course.name}
+                          avgGpa={course.avgGpa}
+                          gradeData={course.gradeData}
+                          instructors={selectedInstructor ? [selectedInstructor] : []}
+                          showInstructors={true}
+                          isRequired={true}
+                          planItems={planItems}
+                          onAddToPlan={handleAddToPlan}
+                          onSwapInPlan={(newItem) => {
+                            const current = planItems.find((i) => i.code === newItem.code);
+                            if (current) handleSwap(newItem.code, current.instructor, newItem);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {upperDivReqs.length > 0 && (
+                  <section>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="h-px flex-1 bg-slate-200"></div>
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Upper-Division Requirements</h3>
+                      <div className="h-px flex-1 bg-slate-200"></div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {upperDivReqs.map((course) => (
+                        <CourseCard
+                          key={course.code}
+                          code={course.code}
+                          name={course.name}
+                          avgGpa={course.avgGpa}
+                          gradeData={course.gradeData}
+                          instructors={selectedInstructor ? [selectedInstructor] : []}
+                          showInstructors={true}
+                          isRequired={true}
+                          planItems={planItems}
+                          onAddToPlan={handleAddToPlan}
+                          onSwapInPlan={(newItem) => {
+                            const current = planItems.find((i) => i.code === newItem.code);
+                            if (current) handleSwap(newItem.code, current.instructor, newItem);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {otherCourses.length > 0 && (
+                  <section>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="h-px flex-1 bg-slate-200"></div>
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Other Courses</h3>
+                      <div className="h-px flex-1 bg-slate-200"></div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {otherCourses.map((course) => (
+                        <CourseCard
+                          key={course.code}
+                          code={course.code}
+                          name={course.name}
+                          avgGpa={course.avgGpa}
+                          gradeData={course.gradeData}
+                          instructors={selectedInstructor ? [selectedInstructor] : []}
+                          showInstructors={true}
+                          isRequired={false}
+                          planItems={planItems}
+                          onAddToPlan={handleAddToPlan}
+                          onSwapInPlan={(newItem) => {
+                            const current = planItems.find((i) => i.code === newItem.code);
+                            if (current) handleSwap(newItem.code, current.instructor, newItem);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>

@@ -165,6 +165,7 @@ Here's a plain breakdown of each feature based on the actual project intent:
    the result.
 
 [Sat May 2] 
+
 ## Changes Made (Session Log)
 
 ### 1. React Compiler disabled — `next.config.ts`
@@ -442,4 +443,59 @@ export function getSavedPlans(): SavedPlan[] {
 |------|-----------------|
 | `should sort plans with the newest createdDate first` | Saves 3 plans with different years/months and verifies `getSavedPlans()` returns them in Newest → Middle → Old order. |
 | `should handle same-day plans correctly based on full ISO string` | Verifies that even if two plans are saved on the same day, the one saved later in the day (based on ISO timestamp) appears first. |
+
+---
+
+### 10. Compact 3-column grid layout — `app/page.tsx` & `app/components/course-card.tsx`
+
+The course list was switched from a single-column vertical list to a **3-column grid** (on desktop) to allow students to see more courses at once. The `CourseCard` was redesigned to fit this new layout, taking inspiration from dense content layouts like YouTube.
+
+**Changes:**
+
+- **Grid Layout (`app/page.tsx`)**: The course container now uses `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`.
+- **Thumbnail Chart**: The Grade Distribution Chart is now fixed at the top of the card (height: 160px), acting as a visual "thumbnail". The chart itself was simplified (removed axis lines/labels) to look cleaner at smaller scales.
+- **Condensed Metadata**: Padding was reduced throughout. Course code, GPA, and name are now tightly packed below the chart. 
+- **Smart Instructor List**: To maintain a consistent card height, only the top 2 instructors are shown by default, with an indicator (e.g., "+3 more") if others are available.
+
+**Tests — `tests/app_tests/course-card-swap.test.tsx`:**
+
+---
+
+### 11. UI Refinement: Student count placement — `app/components/course-card.tsx`
+
+To improve readability and prevent the student count label from overlapping with the chart bars (especially when "DNF" or "C" grades are high), the label was moved from the bottom right to the **top right** of the chart area.
+
+**Changes:**
+- Updated the label's positioning classes in `CourseCard`: changed `bottom-2` to `top-2`.
+- Added `z-10` to ensure the label stays above the chart elements.
+
+---
+
+### 12. Dashboard Sorting Options — `app/page.tsx` & `app/components/course-card.tsx`
+
+Added a 'sort-by' dropdown to the dashboard to allow students to organize courses within their requirement sections.
+
+**Features:**
+- **Default Sort**: Positioned at the top, this option sorts courses according to their order in the official major requirements.
+- **GPA Sorting**: Options for "GPA: High to Low" and "GPA: Low to High".
+- **Enrollment Sorting**: New options for "Students: High to Low" and "Students: Low to High", calculated from the total historical student count in the grade data.
+- **Section Integrity**: Sorting is applied independently within each course section (Lower-Division, Upper-Division, and Other), ensuring that requirements remain properly segregated.
+
+**Implementation Details:**
+- A new `sortOrder` state in `app/page.tsx` controls the sorting behavior.
+- `sortFn` was added to handle the different sorting criteria, including a new helper `getStudentCount` that aggregates counts from `gradeData`.
+- The dropdown is styled to match the dashboard's design system and is hidden during printing/exporting.
+- `data-testid="course-card-title"` was added to `CourseCard` to facilitate reliable testing.
+
+**Tests — `tests/app_tests/dashboard-sort.test.tsx`:**
+
+| Test | What it verifies |
+|------|-----------------|
+| `sorts by default (order in requirements)` | Verifies that courses are ordered according to the major requirements by default. |
+| `sorts by GPA ascending` | Verifies that courses with lower average GPAs appear first when selected. |
+| `sorts by GPA descending` | Verifies that courses with higher average GPAs appear first when selected. |
+| `sorts by student count descending` | Verifies that more popular courses (by total enrollment) appear first. |
+| `sorts by student count ascending` | Verifies that smaller courses appear first. |
+
+
 
