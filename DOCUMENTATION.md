@@ -163,3 +163,176 @@ Here's a plain breakdown of each feature based on the actual project intent:
   optimal path. Degree plan is what defines what courses that path
    must include. Saved plans and export are how you keep and share
    the result.
+
+[Sat May 2] 
+## Changes Made (Session Log)
+
+### 1. React Compiler disabled — `next.config.ts`
+
+`reactCompiler: true` caused the dev server to hang on first request (it connected but never responded). It was disabled until the compiler is properly configured for this Next.js version.
+
+**File:** `next.config.ts`
+
+```ts
+// Before
+reactCompiler: true,
+
+// After
+reactCompiler: false,
+```
+
+---
+
+### 2. Your Plan section redesigned — `app/page.tsx`
+
+The plan panel was a narrow fixed `w-56` (224px) column. It was widened to `w-80` (320px) and reorganized:
+
+- Header row shows "Your Plan (N)" and "Avg GPA: X.XX" side by side
+- Course list now shows: `code | instructor | avg GPA | ✕`
+- Generate Plan, Save Plan, and Clear are now in one action row at the bottom
+- A left border separates the plan column from the requirements column on desktop
+
+The **Generate Plan** button's hover shadow (`hover:shadow-xl hover:shadow-violet-500/60`) was visually bleeding into the plan items below it. It was replaced with a static non-expanding shadow:
+
+```tsx
+// Before — shadow expands and glows on hover, clashing with items below
+className="... shadow-lg shadow-violet-500/40 hover:shadow-xl hover:shadow-violet-500/60 ..."
+
+// After — consistent shadow that doesn't expand
+className="... shadow-md shadow-violet-500/30 hover:brightness-110 ..."
+```
+
+---
+
+### 3. Generate Plan respects manual selections — `app/page.tsx`
+
+Previously, clicking Generate Plan would replace every course in Your Plan with the highest-GPA option, overriding any instructor you had manually chosen.
+
+Now it builds a map of your existing selections before generating, and only fills in courses you haven't already picked:
+
+```ts
+// Build map of what the user already chose
+const existingByCode = new Map<string, PlanItem>();
+for (const item of planItems) {
+  existingByCode.set(item.code, item);
+}
+
+// Per group type:
+// "all"          → use existing selection for that code, fall back to best instructor
+// "choose_from"  → if any course from the group is already chosen, keep it; else auto-pick
+// "one_sequence" → if a full sequence is already in the plan, keep it; else auto-pick best avg
+```
+
+---
+
+### 4. Upgrade suggestions with Swap — `app/page.tsx`
+
+When your plan contains courses where a higher-GPA instructor is available, an amber panel appears below the requirements checklist listing each possible swap.
+
+**How it works:**
+
+A `useEffect` fires whenever `planItems` changes. It calls `/api/bulk-best-instructors` for the codes in your current plan, then compares each item's instructor against the best available:
+
+```ts
+useEffect(() => {
+  if (planItems.length === 0) { setUpgradeSuggestions([]); return; }
+  const codes = planItems.map((i) => i.code).join(",");
+  fetch(`/api/bulk-best-instructors?codes=${encodeURIComponent(codes)}`)
+    .then((r) => r.json())
+    .then((best: Record<string, PlanItem>) => {
+      const suggestions: UpgradeSuggestion[] = [];
+      for (const item of planItems) {
+        const b = best[item.code];
+        if (b && b.instructor !== item.instructor && b.avgGpa > item.avgGpa) {
+          suggestions.push({
+            code: item.code,
+            currentInstructor: item.instructor,
+            currentGpa: item.avgGpa,
+            betterItem: { ...b, code: item.code },
+          });
+        }
+      }
+      setUpgradeSuggestions(suggestions);
+    });
+}, [planItems]);
+```
+
+Each suggestion shows: `CODE  current instructor (GPA)  →  better instructor (GPA)  [Swap]`
+
+Clicking **Swap** calls `handleSwap`, which removes the current item from the draft and adds the better one:
+
+```ts
+const handleSwap = (code: string, currentInstructor: string, betterItem: PlanItem) => {
+  removeDraftItem(code, currentInstructor, selectedSubject);
+  const updated = addDraftItem(betterItem, selectedSubject);
+  setPlanItems(updated);
+  setPlanGrades(updated.map((x) => x.avgGpa));
+};
+```
+
+**New types added:**
+
+```ts
+interface UpgradeSuggestion {
+  code: string;
+  currentInstructor: string;
+  currentGpa: number;
+  betterItem: PlanItem;   // full PlanItem so Swap can call addDraftItem directly
+}
+```
+
+---
+
+### 5. Course requirement clicks snap instead of scroll — `app/page.tsx`
+
+Clicking a course badge in the requirements checklist used to animate a smooth scroll. Changed to instant:
+
+```ts
+// Before
+element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+// After
+element.scrollIntoView({ behavior: "instant", block: "center" });
+```
+
+---
+
+### 6. "Back to requirements" floating button — `app/page.tsx`
+
+After jumping to a course, a centered floating pill button appears at the bottom of the screen. It snaps back to the very top of the page (showing the nav) and disappears when you're already at the top.
+
+**How it works:**
+
+- `mainRef` (a `useRef<HTMLElement>`) is attached to the `<main>` scroll container
+- A scroll listener sets `scrolledDown` to `true` whenever `scrollTop > 0`
+- The button renders only when `scrolledDown` is true
+
+```ts
+const mainRef = useRef<HTMLElement>(null);
+const [scrolledDown, setScrolledDown] = useState(false);
+
+// Scroll listener
+useEffect(() => {
+  const el = mainRef.current;
+  if (!el) return;
+  const onScroll = () => setScrolledDown(el.scrollTop > 0);
+  el.addEventListener("scroll", onScroll, { passive: true });
+  return () => el.removeEventListener("scroll", onScroll);
+}, []);
+
+// Snap to top
+const scrollToTop = () => {
+  mainRef.current?.scrollTo({ top: 0, behavior: "instant" });
+};
+```
+
+```tsx
+{/* In JSX */}
+<main ref={mainRef} className="flex-1 overflow-auto">
+
+{scrolledDown && (
+  <button onClick={scrollToTop} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 ...">
+    ↑ Back to requirements
+  </button>
+)}
+```

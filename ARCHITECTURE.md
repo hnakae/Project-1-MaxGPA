@@ -2,7 +2,7 @@
 
 Three-layer architecture: **SQLite database** ← **FastAPI backend** ← **Next.js frontend**.
 
-```
+```text
 Browser  ──►  Next.js (port 3000)  ──►  FastAPI (port 8000)  ──►  SQLite (grade_data.db)
 ```
 
@@ -13,6 +13,7 @@ All data fetching is client-side `fetch()` from `"use client"` components — th
 ## Layer 1 — Database (SQLite)
 
 The database has three distinct concerns stored in one file (`db/grade_data.db`):
+
 - **Grade history** — imported from raw CSV files at startup (`Course_Records`, `CourseTitles`, `Reconciliation`)
 - **Student planning** — lightweight runtime tables (`terms`, `courses`)
 - **Degree requirements** — managed via admin UI (`Requirement_Groups`, `Major_Requirements`)

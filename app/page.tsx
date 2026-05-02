@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FilterSidebar } from "./components/filter-sidebar";
 import { KpiCard } from "./components/kpi-card";
 import { CourseCard } from "./components/course-card";
@@ -9,6 +9,13 @@ import { savePlan, getDraftItems, addDraftItem, removeDraftItem, clearDraft } fr
 import type { PlanItem } from "./lib/saved-plans";
 import { isGroupMet, allGroupsMet, groupBySequence } from "./lib/requirements";
 import type { RequirementGroup } from "./lib/requirements";
+
+interface UpgradeSuggestion {
+  code: string;
+  currentInstructor: string;
+  currentGpa: number;
+  betterItem: PlanItem;
+}
 
 interface GradeEntry {
   grade: string;
@@ -51,12 +58,41 @@ export default function DashboardPage() {
   const [planName, setPlanName] = useState("");
   const [savedConfirm, setSavedConfirm] = useState(false);
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
+  const [upgradeSuggestions, setUpgradeSuggestions] = useState<UpgradeSuggestion[]>([]);
+  const [scrolledDown, setScrolledDown] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const draft = getDraftItems(selectedSubject);
     setPlanItems(draft);
     setPlanGrades(draft.map((x) => x.avgGpa));
   }, [selectedSubject]);
+
+  useEffect(() => {
+    if (planItems.length === 0) {
+      setUpgradeSuggestions([]);
+      return;
+    }
+    const codes = planItems.map((i) => i.code).join(",");
+    fetch(`/api/bulk-best-instructors?codes=${encodeURIComponent(codes)}`)
+      .then((r) => r.json())
+      .then((best: Record<string, PlanItem>) => {
+        const suggestions: UpgradeSuggestion[] = [];
+        for (const item of planItems) {
+          const b = best[item.code];
+          if (b && b.instructor !== item.instructor && b.avgGpa > item.avgGpa) {
+            suggestions.push({
+              code: item.code,
+              currentInstructor: item.instructor,
+              currentGpa: item.avgGpa,
+              betterItem: { ...b, code: item.code },
+            });
+          }
+        }
+        setUpgradeSuggestions(suggestions);
+      })
+      .catch(() => setUpgradeSuggestions([]));
+  }, [planItems]);
 
   useEffect(() => {
     if (!selectedSubject) return;
@@ -90,6 +126,13 @@ export default function DashboardPage() {
     clearDraft(selectedSubject);
     setPlanItems([]);
     setPlanGrades([]);
+  };
+
+  const handleSwap = (code: string, currentInstructor: string, betterItem: PlanItem) => {
+    removeDraftItem(code, currentInstructor, selectedSubject);
+    const updated = addDraftItem(betterItem, selectedSubject);
+    setPlanItems(updated);
+    setPlanGrades(updated.map((x) => x.avgGpa));
   };
 
   const handleGeneratePlan = async () => {
@@ -330,13 +373,25 @@ export default function DashboardPage() {
       });
   }, [selectedSubject, selectedYears, searchQuery, selectedInstructor, requirementGroups]);
 
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const onScroll = () => setScrolledDown(el.scrollTop > 0);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
   const requiredCodes = new Set(requirementGroups.flatMap((g) => g.courses.map((c) => c.code)));
 
   const scrollToCourse = (code: string) => {
     const element = document.getElementById(`course-${code.replace(/\s+/g, "-")}`);
     if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      element.scrollIntoView({ behavior: "instant", block: "center" });
     }
+  };
+
+  const scrollToTop = () => {
+    mainRef.current?.scrollTo({ top: 0, behavior: "instant" });
   };
 
   const requiredCodesOrdered = requirementGroups.flatMap((g) => g.courses.map((c) => c.code));
@@ -382,7 +437,7 @@ export default function DashboardPage() {
         onInstructorChange={setSelectedInstructor}
       />
 
-      <main className="flex-1 overflow-auto">
+      <main ref={mainRef} className="flex-1 overflow-auto">
         <div id="report-content" className="p-8 max-w-7xl mx-auto">
 
           {/* Report header — shown when exporting or printing */}
@@ -411,7 +466,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Requirements checklist + Save Plan */}
-          <div className="mb-6 rounded-xl border border-slate-200 bg-white print:hidden">
+          <div id="requirements-section" className="mb-6 rounded-xl border border-slate-200 bg-white print:hidden">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start p-5">
               {/* Groups */}
               <div className="flex-1 space-y-4">
@@ -523,6 +578,26 @@ export default function DashboardPage() {
                 {requirementGroups.length === 0 && planItems.length === 0 && (
                   <p className="text-sm text-slate-400">Add courses to your plan, then save.</p>
                 )}
+
+                {upgradeSuggestions.length > 0 && (
+                  <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Better options available</p>
+                    {upgradeSuggestions.map((s) => (
+                      <div key={s.code} className="flex items-center gap-2 text-xs text-amber-800">
+                        <span className="font-semibold shrink-0">{s.code}</span>
+                        <span className="text-amber-600 truncate">{s.currentInstructor} ({s.currentGpa.toFixed(2)})</span>
+                        <span className="shrink-0 text-amber-400">→</span>
+                        <span className="truncate flex-1">{s.betterItem.instructor} <span className="font-semibold text-emerald-700">({s.betterItem.avgGpa.toFixed(2)})</span></span>
+                        <button
+                          onClick={() => handleSwap(s.code, s.currentInstructor, s.betterItem)}
+                          className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition-colors"
+                        >
+                          Swap
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Plan list + Save */}
@@ -549,6 +624,7 @@ export default function DashboardPage() {
                       >
                         <span className="text-xs font-semibold text-slate-700 shrink-0">{item.code}</span>
                         <span className="text-xs text-slate-400 truncate flex-1">{item.instructor}</span>
+                        <span className="text-xs font-medium text-slate-500 shrink-0">{item.avgGpa.toFixed(2)}</span>
                         <button
                           onClick={() => handleRemoveFromPlan(item.code, item.instructor)}
                           className="shrink-0 text-slate-300 hover:text-rose-500 transition-colors"
@@ -683,6 +759,16 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+    )}
+
+    {/* Back to top button */}
+    {scrolledDown && (
+      <button
+        onClick={scrollToTop}
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium bg-white border border-slate-200 shadow-lg text-slate-700 hover:bg-slate-50 transition-colors"
+      >
+        ↑ Back to requirements
+      </button>
     )}
 
     {/* Saved confirmation toast */}
