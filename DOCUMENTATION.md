@@ -336,3 +336,28 @@ const scrollToTop = () => {
   </button>
 )}
 ```
+
+---
+
+### 7. Filter sidebar reorganized — `app/components/filter-sidebar.tsx`
+
+All four filter sections were previously ordered Major → Year → Search Courses → Instructor. The Year list's `max-h-56` scroll window pushed Instructor out of the viewport, requiring users to scroll to see it.
+
+**Changes:**
+
+- Section order changed to: **Search Courses → Instructor → Major → Year** (search inputs first)
+- Accordion panel padding reduced from `p-4` to `p-3` (trigger) and `px-3 pb-3` (content) to save vertical space
+- Year list scroll window reduced from `max-h-56` to `max-h-36`
+- Gap between accordion items reduced from `space-y-4` to `space-y-3`
+- `lg:overflow-auto` added to the `<aside>` so the sidebar scrolls independently on very short viewports
+- `defaultValue` updated to match the new order: `["course", "instructor", "subject", "year"]`
+
+```tsx
+// Before
+<Accordion.Root defaultValue={["year", "subject", "course", "instructor"]} className="space-y-4">
+  {/* Major, Year, Search Courses, Instructor */}
+
+// After
+<Accordion.Root defaultValue={["course", "instructor", "subject", "year"]} className="space-y-3">
+  {/* Search Courses, Instructor, Major, Year */}
+```
