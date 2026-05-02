@@ -135,6 +135,16 @@ export default function DashboardPage() {
     setPlanGrades(updated.map((x) => x.avgGpa));
   };
 
+  const handleSwapAll = () => {
+    let updated: PlanItem[] = planItems;
+    for (const s of upgradeSuggestions) {
+      removeDraftItem(s.code, s.currentInstructor, selectedSubject);
+      updated = addDraftItem(s.betterItem, selectedSubject);
+    }
+    setPlanItems(updated);
+    setPlanGrades(updated.map((x) => x.avgGpa));
+  };
+
   const handleGeneratePlan = async () => {
     if (requirementGroups.length === 0) return;
     setGenerating(true);
@@ -581,7 +591,15 @@ export default function DashboardPage() {
 
                 {upgradeSuggestions.length > 0 && (
                   <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
-                    <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Better options available</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Better options available</p>
+                      <button
+                        onClick={handleSwapAll}
+                        className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition-colors"
+                      >
+                        Swap All
+                      </button>
+                    </div>
                     {upgradeSuggestions.map((s) => (
                       <div key={s.code} className="flex items-center gap-2 text-xs text-amber-800">
                         <span className="font-semibold shrink-0">{s.code}</span>
@@ -718,6 +736,10 @@ export default function DashboardPage() {
                 isRequired={requiredCodes.has(course.code)}
                 planItems={planItems}
                 onAddToPlan={handleAddToPlan}
+                onSwapInPlan={(newItem) => {
+                  const current = planItems.find((i) => i.code === newItem.code);
+                  if (current) handleSwap(newItem.code, current.instructor, newItem);
+                }}
               />
             ))}
           </div>

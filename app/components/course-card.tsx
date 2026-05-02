@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { GradeDistributionChart } from "./grade-distribution-chart";
-import { Star, TrendingUp, TrendingDown, Users, Plus, Check, BookMarked, ChevronDown } from "lucide-react";
+import { Star, TrendingUp, TrendingDown, Users, Plus, Check, BookMarked, ChevronDown, ArrowLeftRight } from "lucide-react";
 import type { GradeEntry, PlanItem } from "../lib/saved-plans";
 
 interface InstructorRow {
@@ -22,6 +22,7 @@ interface CourseCardProps {
   isRequired?: boolean;
   planItems?: PlanItem[];
   onAddToPlan?: (item: PlanItem) => void;
+  onSwapInPlan?: (newItem: PlanItem) => void;
 }
 
 const RECOMMENDATION_STYLES = {
@@ -49,6 +50,7 @@ export function CourseCard({
   isRequired = false,
   planItems = [],
   onAddToPlan,
+  onSwapInPlan,
 }: CourseCardProps) {
   const [topInstructors, setTopInstructors] = useState<InstructorRow[]>([]);
   const [collapsed, setCollapsed] = useState(false);
@@ -71,8 +73,9 @@ export function CourseCard({
   const RecommendationIcon = recommendation.icon;
   const totalStudents      = gradeData.reduce((sum, item) => sum + item.count, 0);
 
+  const currentPlanItem = planItems.find((i) => i.code === code);
   const isInPlan = (instructor: string) =>
-    planItems.some((i) => i.code === code && i.instructor === instructor);
+    currentPlanItem?.instructor === instructor;
 
   return (
     <div id={`course-${code.replace(/\s+/g, "-")}`} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden course-card-print">
@@ -168,24 +171,35 @@ export function CourseCard({
                       ), [])}
                     </div>
 
-                    {onAddToPlan && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!added) {
-                            onAddToPlan({ code, instructor: row.instructor, avgGpa: row.avgGpa, gradeData: row.gradeData });
-                            setCollapsed(true);
-                          }
-                        }}
-                        className={`shrink-0 flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                          added
-                            ? "bg-emerald-100 text-emerald-700 cursor-default"
-                            : "bg-forest-900 text-white hover:bg-forest-800"
-                        }`}
-                      >
-                        {added ? <><Check className="w-3 h-3" /> Added</> : <><Plus className="w-3 h-3" /> Add</>}
-                      </button>
-                    )}
+                    {(onAddToPlan || onSwapInPlan) && (() => {
+                      const newItem = { code, instructor: row.instructor, avgGpa: row.avgGpa, gradeData: row.gradeData };
+                      const isSwappable = !added && !!currentPlanItem && onSwapInPlan;
+                      if (added) {
+                        return (
+                          <span className="shrink-0 flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-emerald-100 text-emerald-700">
+                            <Check className="w-3 h-3" /> Added
+                          </span>
+                        );
+                      }
+                      if (isSwappable) {
+                        return (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onSwapInPlan!(newItem); setCollapsed(true); }}
+                            className="shrink-0 flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition-colors"
+                          >
+                            <ArrowLeftRight className="w-3 h-3" /> Swap
+                          </button>
+                        );
+                      }
+                      return (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onAddToPlan?.(newItem); setCollapsed(true); }}
+                          className="shrink-0 flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-forest-900 text-white hover:bg-forest-800 transition-colors"
+                        >
+                          <Plus className="w-3 h-3" /> Add
+                        </button>
+                      );
+                    })()}
                   </div>
                 );
               })}

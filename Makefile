@@ -1,4 +1,4 @@
-.PHONY: help install dev-fe dev-be test-fe test-be lint db-seed docker-up docker-down push dev
+.PHONY: help install dev-fe dev-be test-fe test-be test-app lint db-seed docker-up docker-down push dev
 
 # Default target: show help
 help:
@@ -7,6 +7,7 @@ help:
 	@echo "  dev-fe         Run Next.js frontend in development mode"
 	@echo "  dev-be         Run FastAPI backend in development mode"
 	@echo "  test-fe        Run frontend tests with Vitest"
+	@echo "  test-app       Run app unit tests (tests/app_tests)"
 	@echo "  test-be        Run backend tests with Pytest"
 	@echo "  lint           Run ESLint"
 	@echo "  db-seed        Reset and seed the database"
@@ -33,6 +34,9 @@ dev:
 # Testing
 test-fe:
 	npm run test
+
+test-app:
+	npx vitest run --config tests/vitest.config.ts tests/app_tests
 
 test-be:
 	pytest tests/api_tests

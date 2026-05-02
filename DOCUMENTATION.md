@@ -361,3 +361,52 @@ All four filter sections were previously ordered Major → Year → Search Cours
 <Accordion.Root defaultValue={["course", "instructor", "subject", "year"]} className="space-y-3">
   {/* Search Courses, Instructor, Major, Year */}
 ```
+
+---
+
+### 8. CourseCard instructor button states — `app/components/course-card.tsx`
+
+Previously every instructor row showed either **+ Add** or **✓ Added** based solely on whether that exact instructor was in the plan. There was no way to switch instructors from the course card once one was added.
+
+**New behavior:** when any instructor for a course is already in Your Plan, all other instructor rows for that same course show a **Swap** button instead of **+ Add**. Clicking Swap removes the current instructor from the draft and adds the new one in a single action.
+
+**New prop added to `CourseCard`:**
+
+```tsx
+onSwapInPlan?: (newItem: PlanItem) => void;
+```
+
+**Button state logic** (per instructor row):
+
+```tsx
+const currentPlanItem = planItems.find((i) => i.code === code);
+
+// same instructor already in plan → non-interactive "Added" span
+if (isInPlan(row.instructor)) → <span>✓ Added</span>
+
+// different instructor for same course is in plan → Swap button
+if (currentPlanItem && row.instructor !== currentPlanItem.instructor) → <button>Swap</button>
+
+// no instructor for this course in plan → Add button
+else → <button>+ Add</button>
+```
+
+**In `app/page.tsx`**, `onSwapInPlan` is wired to find the current plan entry for that code and call `handleSwap`:
+
+```tsx
+onSwapInPlan={(newItem) => {
+  const current = planItems.find((i) => i.code === newItem.code);
+  if (current) handleSwap(newItem.code, current.instructor, newItem);
+}}
+```
+
+**Tests — `tests/app_tests/course-card-swap.test.tsx`:**
+
+| Test | What it verifies |
+|------|-----------------|
+| `shows Add for all instructors when no instructor for this course is in the plan` | Both rows show Add; no Swap or Added present |
+| `shows Added for the instructor already in the plan` | The added instructor's row renders a non-interactive Added span |
+| `shows Swap for other instructors when one instructor for the same course is in the plan` | Added + Swap coexist; no Add button remains |
+| `calls onSwapInPlan with the new item when Swap is clicked` | `onSwapInPlan` receives the correct `PlanItem` (Dr. Jones row) |
+| `calls onAddToPlan with the correct item when Add is clicked` | `onAddToPlan` receives the correct `PlanItem` (first instructor) |
+| `does not call onSwapInPlan when the already-added instructor row is clicked` | Added is a `<span>`, not a button — clicking it is a no-op |

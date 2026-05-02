@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest"
+    "test": "vitest --config tests/vitest.config.ts"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
