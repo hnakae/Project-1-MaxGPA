@@ -27,10 +27,6 @@ dev-fe:
 dev-be:
 	fastapi dev api/main.py
 
-dev:
-	dev-be
-	dev-fe
-
 # Testing
 test-fe:
 	npm run test

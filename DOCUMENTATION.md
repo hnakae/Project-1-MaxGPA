@@ -410,3 +410,36 @@ onSwapInPlan={(newItem) => {
 | `calls onSwapInPlan with the new item when Swap is clicked` | `onSwapInPlan` receives the correct `PlanItem` (Dr. Jones row) |
 | `calls onAddToPlan with the correct item when Add is clicked` | `onAddToPlan` receives the correct `PlanItem` (first instructor) |
 | `does not call onSwapInPlan when the already-added instructor row is clicked` | Added is a `<span>`, not a button — clicking it is a no-op |
+
+---
+
+### 9. Saved plans sorted by newest first — `app/lib/saved-plans.ts`
+
+In the "My Degree Plan" page, saved plans were previously displayed in the order they were stored in `localStorage` (typically the order they were created, oldest first).
+
+Now, the `getSavedPlans` function automatically sorts all plans by their `createdDate` in descending order before returning them to the UI. This ensures the student always sees their most recent plans at the top.
+
+**Implementation:**
+
+```ts
+export function getSavedPlans(): SavedPlan[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const plans: SavedPlan[] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    // Sort by createdDate (newest first)
+    return plans.sort((a, b) => 
+      new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
+    );
+  } catch {
+    return [];
+  }
+}
+```
+
+**Tests — `tests/app_tests/saved-plans-sort.test.ts`:**
+
+| Test | What it verifies |
+|------|-----------------|
+| `should sort plans with the newest createdDate first` | Saves 3 plans with different years/months and verifies `getSavedPlans()` returns them in Newest → Middle → Old order. |
+| `should handle same-day plans correctly based on full ISO string` | Verifies that even if two plans are saved on the same day, the one saved later in the day (based on ISO timestamp) appears first. |
+

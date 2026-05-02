@@ -27,7 +27,8 @@ const draftKey = (subject: string) => `maxgpa-plan-draft-${subject}`;
 export function getSavedPlans(): SavedPlan[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    const plans: SavedPlan[] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    return plans.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
   } catch {
     return [];
   }
