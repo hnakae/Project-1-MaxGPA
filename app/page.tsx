@@ -505,14 +505,15 @@ export default function DashboardPage() {
                   <button
                     onClick={handleGeneratePlan}
                     disabled={generating}
-                    className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-white btn-forest disabled:opacity-50 self-start"
+                    className="self-start relative flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 shadow-lg shadow-violet-500/40 hover:shadow-xl hover:shadow-violet-500/60 hover:brightness-110 active:scale-[0.97] transition-all duration-200 disabled:opacity-50 disabled:shadow-none disabled:active:scale-100 overflow-hidden group"
                   >
+                    <span className="absolute inset-0 bg-gradient-to-r from-violet-400/20 via-transparent to-indigo-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-full" />
                     {generating ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Loader2 className="w-4 h-4 animate-spin relative z-10" />
                     ) : (
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Sparkles className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-200" />
                     )}
-                    Generate Plan
+                    <span className="relative z-10">Generate Plan</span>
                   </button>
                 )}
 

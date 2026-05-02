@@ -1,4 +1,4 @@
-.PHONY: help install dev-fe dev-be test-fe test-be lint db-seed docker-up docker-down push
+.PHONY: help install dev-fe dev-be test-fe test-be lint db-seed docker-up docker-down push dev
 
 # Default target: show help
 help:
@@ -25,6 +25,10 @@ dev-fe:
 
 dev-be:
 	fastapi dev api/main.py
+
+dev:
+	dev-be
+	dev-fe
 
 # Testing
 test-fe:

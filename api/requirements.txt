@@ -4,3 +4,5 @@ shutil
 
 # Note: This is a Python package dependencies file, NOT major/degree course requirements.
 # Major requirement courses (CS, MATH, BA) are stored in the database and managed via the admin UI.
+
+#TODO: make sure to add all of the python packages above
