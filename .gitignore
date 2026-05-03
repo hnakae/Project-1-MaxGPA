@@ -53,3 +53,5 @@ venv/
 # databases
 *.db
 !db/grade_data.db
+*.db-shm
+*.db-wal
