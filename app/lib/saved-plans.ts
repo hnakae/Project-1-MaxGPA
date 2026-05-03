@@ -4,11 +4,14 @@ export interface GradeEntry {
   percentage: number;
 }
 
-export interface PlanItem {
-  code: string;
+export interface InstructorRow {
   instructor: string;
   avgGpa: number;
   gradeData: GradeEntry[];
+}
+
+export interface PlanItem extends InstructorRow {
+  code: string;
 }
 
 export interface SavedPlan {
