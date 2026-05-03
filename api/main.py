@@ -1,15 +1,24 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel
 import sqlite3
 import os
+import sys
 from typing import Optional
+import shutil
 
 app = FastAPI()
 
-DB_PATH = os.path.join(
+DB_DIRECTORY = os.path.join( 
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "db", "grade_data.db"
+    "db"
 )
+
+DB_PATH = os.path.join(
+    DB_DIRECTORY, "grade_data.db"
+)
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from db import database
 
 _AY_EXPR = """
     CASE WHEN TermDesc LIKE 'Fall%'
@@ -115,6 +124,18 @@ async def add_requirement(body: RequirementIn, db_path=DB_PATH):
     conn.close()
     return {"id": req_id}
 
+@app.post("/api/upload-csv")
+async def upload_csv(file: UploadFile = File(...)):
+    file_path = DB_DIRECTORY + "/" + file.filename
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not save file: {str(e)}")
+    finally:
+        await file.close()
+
+    return {"filename": file.filename}
 
 @app.delete("/api/requirements/{req_id}")
 async def delete_requirement(req_id: int, db_path=DB_PATH):
