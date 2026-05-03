@@ -126,16 +126,14 @@ async def add_requirement(body: RequirementIn, db_path=DB_PATH):
 
 @app.post("/api/upload-csv")
 async def upload_csv(file: UploadFile = File(...)):
-    file_path = DB_DIRECTORY + "/" + file.filename
     try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        result = database.import_grade_csv(file.file)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Could not save file: {str(e)}")
     finally:
         await file.close()
 
-    return {"filename": file.filename}
+    return result
 
 @app.delete("/api/requirements/{req_id}")
 async def delete_requirement(req_id: int, db_path=DB_PATH):
