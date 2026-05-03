@@ -7,9 +7,8 @@ import os
 import glob
 
 DB_FILE = 'db/grade_data.db'
-GRADE_DATA_DIR = 'data/raw'          # drop grade CSVs here; all *.csv files are ingested
-MAJOR_REQUIREMENTS_DIR = 'data/meta/major_requirements'
-RECONCILIATION_FILE = 'data/meta/Reconciliation.csv'
+GRADE_DATA_DIR = 'data/raw/'          # drop grade CSVs here; all *.csv files are ingested
+MAJOR_REQUIREMENTS_DIR = 'data/meta/major_requirements/'
 
 # All columns that carry grade counts (TOT_NON_W is enrollment, not a grade)
 GRADE_COLS = [
@@ -70,28 +69,29 @@ def clean_and_aggregate_data(df):
 
 def _setup_schema(cursor):
     cursor.executescript('''
-        CREATE TABLE IF NOT EXISTS Majors (
-            MajorID   INTEGER PRIMARY KEY AUTOINCREMENT,
-            MajorName TEXT UNIQUE NOT NULL
+        CREATE TABLE IF NOT EXISTS Requirement_Groups (
+            GroupID   INTEGER PRIMARY KEY AUTOINCREMENT,
+            Major     TEXT NOT NULL,
+            GroupName TEXT NOT NULL,
+            Type      TEXT NOT NULL DEFAULT 'all',
+            SortOrder INTEGER NOT NULL DEFAULT 0
         );
 
-        -- Year/Term are the student's year-in-program and quarter (1=Fall,2=Winter,3=Spring)
         CREATE TABLE IF NOT EXISTS Major_Requirements (
             ReqID        INTEGER PRIMARY KEY AUTOINCREMENT,
-            MajorID      INTEGER NOT NULL,
-            Year         INTEGER,
-            Term         INTEGER,
+            GroupID      INTEGER NOT NULL,
+            Major        TEXT NOT NULL,
             Subject      TEXT NOT NULL,
             CourseNumber TEXT NOT NULL,
-            Title        TEXT,
-            FOREIGN KEY(MajorID) REFERENCES Majors(MajorID)
+            SequenceTag  TEXT,
+            FOREIGN KEY(GroupID) REFERENCES Requirement_Groups(GroupID)
         );
 
-        -- Maps title/number variants in grade history to canonical major requirement names
-        CREATE TABLE IF NOT EXISTS Reconciliation (
-            RecID      INTEGER PRIMARY KEY AUTOINCREMENT,
-            ChangeFrom TEXT NOT NULL,
-            ChangeTo   TEXT NOT NULL
+        CREATE TABLE IF NOT EXISTS Course_Titles (
+            Subject      TEXT NOT NULL,
+            CourseNumber TEXT NOT NULL,
+            Title        TEXT NOT NULL,
+            PRIMARY KEY (Subject, CourseNumber)
         );
 
         CREATE TABLE IF NOT EXISTS Course_Records (
@@ -132,7 +132,7 @@ def _create_indexes(cursor):
         CREATE INDEX IF NOT EXISTS idx_cr_subject_term
             ON Course_Records(Subject, Term);
         CREATE INDEX IF NOT EXISTS idx_mr_major
-            ON Major_Requirements(MajorID);
+            ON Major_Requirements(Major);
         CREATE INDEX IF NOT EXISTS idx_mr_subject_course
             ON Major_Requirements(Subject, CourseNumber);
     ''')
@@ -149,6 +149,22 @@ def _load_grade_history(conn, data_dir=GRADE_DATA_DIR):
     for csv_file in csv_files:
         print(f"Reading {csv_file}...")
         df = pd.read_csv(csv_file, dtype=str)
+        df.columns = df.columns.str.strip()
+
+        if 'TITLE' in df.columns:
+            titles = (
+                df[['SUBJ', 'NUMB', 'TITLE']]
+                .dropna(subset=['TITLE'])
+                .drop_duplicates(subset=['SUBJ', 'NUMB'])
+            )
+            titles = titles[titles['TITLE'].str.strip() != '']
+            conn.cursor().executemany(
+                'INSERT OR REPLACE INTO Course_Titles (Subject, CourseNumber, Title) VALUES (?, ?, ?)',
+                [(r['SUBJ'].strip(), r['NUMB'].strip(), r['TITLE'].strip()) for _, r in titles.iterrows()],
+            )
+            conn.commit()
+            print(f"  Upserted {len(titles)} course titles from {os.path.basename(csv_file)}.")
+
         cleaned_df = clean_and_aggregate_data(df)
 
         # Skip terms already loaded so re-running or appending a new CSV is safe
@@ -219,7 +235,7 @@ def _load_major_requirements(conn, cursor):
             title = row.get('TITLE', '').strip()
             if title:
                 cursor.execute(
-                    'INSERT OR REPLACE INTO CourseTitles (Subject, CourseNumber, Title) VALUES (?, ?, ?)',
+                    'INSERT OR REPLACE INTO Course_Titles (Subject, CourseNumber, Title) VALUES (?, ?, ?)',
                     (subj, numb, title),
                 )
 
@@ -229,25 +245,6 @@ def _load_major_requirements(conn, cursor):
 
     conn.commit()
 
-
-def _load_reconciliation(conn, cursor):
-    if not os.path.exists(RECONCILIATION_FILE):
-        print(f"No reconciliation file at '{RECONCILIATION_FILE}' — skipping.")
-        return
-
-    print(f"Loading reconciliation mappings from {RECONCILIATION_FILE}...")
-    df = pd.read_csv(RECONCILIATION_FILE, dtype=str)
-    df.columns = df.columns.str.strip()
-
-    cursor.execute('DELETE FROM Reconciliation')
-    rows = [
-        (row['CHANGE_FROM'].strip(), row['TO'].strip())
-        for _, row in df.iterrows()
-        if row.get('CHANGE_FROM', '').strip() and row.get('TO', '').strip()
-    ]
-    cursor.executemany('INSERT INTO Reconciliation (ChangeFrom, ChangeTo) VALUES (?, ?)', rows)
-    conn.commit()
-    print(f"Loaded {len(rows)} reconciliation mappings.")
 
 
 def initialize_database(data_dir=GRADE_DATA_DIR):
@@ -266,7 +263,6 @@ def initialize_database(data_dir=GRADE_DATA_DIR):
 
     _load_grade_history(conn, data_dir)
     _load_major_requirements(conn, cursor)
-    _load_reconciliation(conn, cursor)
 
     print("Creating indexes...")
     _create_indexes(cursor)
@@ -328,4 +324,4 @@ def import_grade_csv(file_obj) -> dict:
 
 if __name__ == '__main__':
     import sys
-    initialize_database(sys.argv[1] if len(sys.argv) > 1 else DATA_DIR)
+    initialize_database(sys.argv[1] if len(sys.argv) > 1 else None)

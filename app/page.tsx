@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FilterSidebar } from "./components/filter-sidebar";
 import { CourseCard } from "./components/course-card";
-import { Check, CheckCircle2, Circle, Download, Save, X, Sparkles, Loader2, ArrowUpDown } from "lucide-react";
+import { Check, CheckCircle2, Circle, Save, X, Sparkles, Loader2, ArrowUpDown } from "lucide-react";
 import { savePlan, getDraftItems, addDraftItem, removeDraftItem, clearDraft } from "./lib/saved-plans";
 import type { PlanItem } from "./lib/saved-plans";
 import { isGroupMet, allGroupsMet, groupBySequence } from "./lib/requirements";
@@ -29,7 +29,7 @@ interface Course {
   gradeData: GradeEntry[];
 }
 
-type SortOrder = "default" | "gpa-asc" | "gpa-desc" | "students-asc" | "students-desc";
+type SortOrder = "default" | "gpa-asc" | "gpa-desc" | "students-asc" | "students-desc" | "name-asc" | "name-desc";
 
 const MAJOR_LABELS: Record<string, string> = {
   CS:   "Computer Science",
@@ -38,7 +38,6 @@ const MAJOR_LABELS: Record<string, string> = {
 };
 
 const courseCache = new Map<string, Course[]>();
-const requirementsCache = new Map<string, RequirementGroup[]>();
 
 export default function DashboardPage() {
   "use no memo";
@@ -55,7 +54,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [exporting, setExporting] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [planName, setPlanName] = useState("");
   const [savedConfirm, setSavedConfirm] = useState(false);
@@ -99,17 +97,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!selectedSubject) return;
-    const url = `/api/requirements?major=${selectedSubject}`;
-    if (requirementsCache.has(url)) {
-      setRequirementGroups(requirementsCache.get(url)!);
-      return;
-    }
-    fetch(url)
+    fetch(`/api/requirements?major=${selectedSubject}`)
       .then((r) => r.json())
-      .then((data: RequirementGroup[]) => {
-        requirementsCache.set(url, data);
-        setRequirementGroups(data);
-      })
+      .then((data: RequirementGroup[]) => setRequirementGroups(data))
       .catch(() => setRequirementGroups([]));
   }, [selectedSubject]);
 
@@ -291,43 +281,7 @@ export default function DashboardPage() {
     setTimeout(() => setSavedConfirm(false), 2500);
   };
 
-  const handleExport = async () => {
-    setExporting(true);
-    await new Promise((r) => setTimeout(r, 50));
-
-    const [{ default: jsPDF }, { toCanvas }] = await Promise.all([
-      import("jspdf"),
-      import("html-to-image"),
-    ]);
-
-    const content = document.getElementById("report-content")!;
-    const canvas = await toCanvas(content, { pixelRatio: 2 });
-
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const imgW = pageW;
-    const imgH = (canvas.height * imgW) / canvas.width;
-
-    let remaining = imgH;
-    let offset = 0;
-
-    pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, offset, imgW, imgH);
-    remaining -= pageH;
-
-    while (remaining > 0) {
-      offset -= pageH;
-      pdf.addPage();
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, offset, imgW, imgH);
-      remaining -= pageH;
-    }
-
-    const filename = `maxgpa-${selectedSubject || "report"}-${new Date().toISOString().slice(0, 10)}.pdf`;
-    pdf.save(filename);
-    setExporting(false);
-  };
-
-  useEffect(() => {
+useEffect(() => {
     fetch(`/api/instructors?subject=${selectedSubject}`)
       .then((r) => r.json())
       .then((data: string[]) => {
@@ -437,9 +391,6 @@ export default function DashboardPage() {
       ? filteredCourses.reduce((sum, c) => sum + c.avgGpa, 0) / filteredCourses.length
       : 0;
 
-  const yearsLabel = selectedYears.length > 0 ? selectedYears.join(", ") : "All years";
-  const instructorLabel = selectedInstructor || "All instructors";
-
   const getStudentCount = (c: Course) => (c.gradeData || []).reduce((sum, g) => sum + g.count, 0);
 
   const sortFn = (a: Course, b: Course) => {
@@ -447,6 +398,8 @@ export default function DashboardPage() {
     if (sortOrder === "gpa-desc") return b.avgGpa - a.avgGpa;
     if (sortOrder === "students-asc") return getStudentCount(a) - getStudentCount(b);
     if (sortOrder === "students-desc") return getStudentCount(b) - getStudentCount(a);
+    if (sortOrder === "name-asc") return (parseInt(a.code.split(" ")[1]) || 0) - (parseInt(b.code.split(" ")[1]) || 0);
+    if (sortOrder === "name-desc") return (parseInt(b.code.split(" ")[1]) || 0) - (parseInt(a.code.split(" ")[1]) || 0);
     return courseOrder(a) - courseOrder(b);
   };
 
@@ -477,31 +430,6 @@ export default function DashboardPage() {
 
       <main ref={mainRef} className="flex-1 overflow-auto">
         <div id="report-content" className="p-8 max-w-7xl mx-auto">
-
-          {/* Report header — shown when exporting or printing */}
-          <div className={`${exporting ? "block" : "hidden"} print:block mb-8 pb-6 border-b border-slate-200`}>
-            <h1 className="text-2xl font-semibold text-slate-900 mb-1">
-              MaxGPA — Grade Distribution Report
-            </h1>
-            <p className="text-sm text-slate-500">University of Oregon</p>
-            <div className="mt-4 flex flex-wrap gap-6 text-sm text-slate-700">
-              <span><span className="font-medium">Major:</span> {majorLabel}</span>
-              <span><span className="font-medium">Years:</span> {yearsLabel}</span>
-              <span><span className="font-medium">Instructor:</span> {instructorLabel}</span>
-            </div>
-          </div>
-
-          {/* Controls bar */}
-          <div className="mb-4 flex items-center justify-end print:hidden">
-            <button
-              onClick={handleExport}
-              disabled={exporting}
-              className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white btn-forest disabled:opacity-50"
-            >
-              <Download className="w-4 h-4" />
-              {exporting ? "Generating…" : "Export Report"}
-            </button>
-          </div>
 
           {/* Requirements checklist + Save Plan */}
           <div id="requirements-section" className="mb-6 rounded-xl border border-slate-200 bg-white print:hidden">
@@ -734,6 +662,8 @@ export default function DashboardPage() {
                     className="bg-transparent text-xs font-semibold text-slate-600 focus:outline-none cursor-pointer"
                   >
                     <option value="default">Default Sort</option>
+                    <option value="name-asc">Course Number: Low to High</option>
+                    <option value="name-desc">Course Number: High to Low</option>
                     <option value="gpa-asc">GPA: Low to High</option>
                     <option value="gpa-desc">GPA: High to Low</option>
                     <option value="students-desc">Students: High to Low</option>

@@ -57,7 +57,7 @@ export default function SavedPlansPage() {
   return (
     <div className="mx-auto max-w-7xl p-6 md:p-8">
       <div className="mb-8">
-        <h1 className="mb-2 text-slate-900">My Degree Plan</h1>
+        <h1 className="mb-2 text-slate-900">My Degree Plans</h1>
         <p className="text-slate-600">Your saved course selections</p>
       </div>
 

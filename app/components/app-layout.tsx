@@ -39,7 +39,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-forest-900 text-white shadow-lg print:hidden">
+      <header className="sticky top-0 z-40 bg-forest-900/90 backdrop-blur-md text-white shadow-lg print:hidden">
         <div className="flex flex-col gap-4 px-4 py-4 md:px-6 lg:flex-row lg:items-center lg:justify-between">
           <Link
             href={isAdmin ? "/admin" : "/"}
@@ -53,21 +53,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </Link>
 
           <nav className="flex flex-wrap items-center gap-2 md:gap-4">
-            <Link
-              href="/"
-              className={`rounded-full px-4 py-2 transition-colors ${
-                pathname === "/" || pathname === "/dashboard"
-                  ? "bg-emerald-600 text-white"
-                  : "text-emerald-100 hover:bg-forest-800"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
-                {isAdmin ? "Dashboard" : "Degree Planner"}
-              </span>
-            </Link>
-
-            {isAdmin && (
+            {isAdmin ? (
               <Link
                 href="/admin"
                 className={`rounded-full px-4 py-2 transition-colors ${
@@ -81,19 +67,35 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   Admin Portal
                 </span>
               </Link>
-            )}
-
-            {!isAdmin && (
-              <Link
-                href="/saved-plans"
-                className={`rounded-full px-4 py-2 transition-colors ${
-                  pathname === "/saved-plans"
-                    ? "bg-emerald-600 text-white"
-                    : "text-emerald-100 hover:bg-forest-800"
-                }`}
-              >
-                My Degree Plan
-              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/"
+                  className={`rounded-full px-4 py-2 transition-colors ${
+                    pathname === "/" || pathname === "/dashboard"
+                      ? "bg-emerald-600 text-white"
+                      : "text-emerald-100 hover:bg-forest-800"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" />
+                    Student Dashboard
+                  </span>
+                </Link>
+                <Link
+                  href="/saved-plans"
+                  className={`rounded-full px-4 py-2 transition-colors ${
+                    pathname === "/saved-plans"
+                      ? "bg-emerald-600 text-white"
+                      : "text-emerald-100 hover:bg-forest-800"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    My Plan
+                  </span>
+                </Link>
+              </>
             )}
 
             <div className="border-white/15 lg:ml-4 lg:border-l lg:pl-4">
