@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FilterSidebar } from "./components/filter-sidebar";
 import { CourseCard } from "./components/course-card";
 import { Check, CheckCircle2, Circle, Download, Save, X, Sparkles, Loader2, ArrowUpDown } from "lucide-react";
 import { savePlan, getDraftItems, addDraftItem, removeDraftItem, clearDraft } from "./lib/saved-plans";
-import type { PlanItem, InstructorRow, GradeEntry } from "./lib/saved-plans";
+import type { PlanItem } from "./lib/saved-plans";
 import { isGroupMet, allGroupsMet, groupBySequence } from "./lib/requirements";
 import type { RequirementGroup } from "./lib/requirements";
 
@@ -14,6 +14,12 @@ interface UpgradeSuggestion {
   currentInstructor: string;
   currentGpa: number;
   betterItem: PlanItem;
+}
+
+interface GradeEntry {
+  grade: string;
+  count: number;
+  percentage: number;
 }
 
 interface Course {
@@ -33,10 +39,9 @@ const MAJOR_LABELS: Record<string, string> = {
 
 const courseCache = new Map<string, Course[]>();
 const requirementsCache = new Map<string, RequirementGroup[]>();
-const instructorCache = new Map<string, InstructorRow[]>();
 
 export default function DashboardPage() {
-  const [isPending, startTransition] = useTransition();
+  "use no memo";
   const [selectedYears, setSelectedYears] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>("CS");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -56,52 +61,9 @@ export default function DashboardPage() {
   const [savedConfirm, setSavedConfirm] = useState(false);
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
   const [highlightedCode, setHighlightedCode] = useState<string | null>(null);
-  const [dataFromCache, setDataFromCache] = useState(false);
   const [upgradeSuggestions, setUpgradeSuggestions] = useState<UpgradeSuggestion[]>([]);
   const [scrolledDown, setScrolledDown] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
-
-  // Helper to build the course API URL synchronously for cache lookups
-  const getCourseUrl = (subject: string, years: string[], search: string, instructor: string) => {
-    if (years.length === 0) return null;
-    const reqUrl = `/api/requirements?major=${subject}`;
-    const cachedReqs = requirementsCache.get(reqUrl) || [];
-    const reqSubjects = new Set(cachedReqs.flatMap((g) => g.courses.map((c) => c.code.split(" ")[0])));
-    if (subject) reqSubjects.add(subject);
-    const subjectsParam = Array.from(reqSubjects).join(",");
-    const params = new URLSearchParams();
-    if (subjectsParam) params.set("subjects", subjectsParam);
-    params.set("years", [...years].sort().join(","));
-    if (search) params.set("search", search);
-    if (instructor) params.set("instructor", instructor);
-    return `/api/courses?${params.toString()}`;
-  };
-
-  const handleSubjectChange = (newSubject: string) => {
-    // 1. Reset instructor (existing behavior)
-    setSelectedInstructor("");
-    
-    // 2. Wrap the heavy state updates in a transition
-    startTransition(() => {
-      setSelectedSubject(newSubject);
-
-      // 3. Synchronous Cache Check for Requirements
-      const reqUrl = `/api/requirements?major=${newSubject}`;
-      if (requirementsCache.has(reqUrl)) {
-        const cachedReqs = requirementsCache.get(reqUrl)!;
-        setRequirementGroups(cachedReqs);
-
-        // 4. Synchronous Cache Check for Courses
-        const courseUrl = getCourseUrl(newSubject, selectedYears, searchQuery, "");
-        if (courseUrl && courseCache.has(courseUrl)) {
-          setCourses(courseCache.get(courseUrl)!);
-          setDataFromCache(true);
-          setLoading(false);
-          setError(null);
-        }
-      }
-    });
-  };
 
   useEffect(() => {
     const draft = getDraftItems(selectedSubject);
@@ -400,7 +362,6 @@ export default function DashboardPage() {
 
     if (courseCache.has(url)) {
       setCourses(courseCache.get(url)!);
-      setDataFromCache(true);
       setLoading(false);
       setError(null);
       return;
@@ -408,7 +369,6 @@ export default function DashboardPage() {
 
     setLoading(true);
     setError(null);
-    setDataFromCache(false);
 
     fetch(url)
       .then((r) => {
@@ -434,9 +394,7 @@ export default function DashboardPage() {
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
-  const requiredCodes = useMemo(() => {
-    return new Set(requirementGroups.flatMap((g) => g.courses.map((c) => c.code)));
-  }, [requirementGroups]);
+  const requiredCodes = new Set(requirementGroups.flatMap((g) => g.courses.map((c) => c.code)));
 
   const scrollToCourse = (code: string) => {
     const element = document.getElementById(`course-${code.replace(/\s+/g, "-")}`);
@@ -451,19 +409,13 @@ export default function DashboardPage() {
     mainRef.current?.scrollTo({ top: 0, behavior: "instant" });
   };
 
-  const requiredCodesOrdered = useMemo(() => {
-    return requirementGroups.flatMap((g) => g.courses.map((c) => c.code));
-  }, [requirementGroups]);
-
-  const codeToIndex = useMemo(() => {
-    const map = new Map<string, number>();
-    requiredCodesOrdered.forEach((code, index) => {
-      if (!map.has(code)) {
-        map.set(code, index);
-      }
-    });
-    return map;
-  }, [requiredCodesOrdered]);
+  const requiredCodesOrdered = requirementGroups.flatMap((g) => g.courses.map((c) => c.code));
+  const codeToIndex = new Map<string, number>();
+  requiredCodesOrdered.forEach((code, index) => {
+    if (!codeToIndex.has(code)) {
+      codeToIndex.set(code, index);
+    }
+  });
 
   const courseOrder = (c: Course): number => {
     if (codeToIndex.has(c.code)) {
@@ -473,14 +425,12 @@ export default function DashboardPage() {
     return 10000 + (c.code.charCodeAt(0) * 100) + (parseInt(c.code.split(" ")[1]) || 0);
   };
 
-  const filteredCourses = useMemo(() => {
-    return courses
-      .filter((c) => {
-        const matchesDivision = c.code.startsWith(selectedSubject + " ") || requiredCodes.has(c.code);
-        return matchesDivision;
-      })
-      .sort((a, b) => courseOrder(a) - courseOrder(b));
-  }, [courses, selectedSubject, requiredCodes, codeToIndex]);
+  const filteredCourses = courses
+    .filter((c) => {
+      const matchesDivision = c.code.startsWith(selectedSubject + " ") || requiredCodes.has(c.code);
+      return matchesDivision;
+    })
+    .sort((a, b) => courseOrder(a) - courseOrder(b));
 
   const avgGpa =
     filteredCourses.length > 0
@@ -500,32 +450,24 @@ export default function DashboardPage() {
     return courseOrder(a) - courseOrder(b);
   };
 
-  const lowerDivReqs = useMemo(() => {
-    return filteredCourses
-      .filter(c => requiredCodes.has(c.code) && parseInt(c.code.split(" ")[1]) < 300)
-      .sort(sortFn);
-  }, [filteredCourses, requiredCodes, sortOrder]);
-
-  const upperDivReqs = useMemo(() => {
-    return filteredCourses
-      .filter(c => requiredCodes.has(c.code) && parseInt(c.code.split(" ")[1]) >= 300)
-      .sort(sortFn);
-  }, [filteredCourses, requiredCodes, sortOrder]);
-
-  const otherCourses = useMemo(() => {
-    return filteredCourses
-      .filter(c => !requiredCodes.has(c.code))
-      .sort(sortFn);
-  }, [filteredCourses, requiredCodes, sortOrder]);
+  const lowerDivReqs = filteredCourses
+    .filter(c => requiredCodes.has(c.code) && parseInt(c.code.split(" ")[1]) < 300)
+    .sort(sortFn);
+  const upperDivReqs = filteredCourses
+    .filter(c => requiredCodes.has(c.code) && parseInt(c.code.split(" ")[1]) >= 300)
+    .sort(sortFn);
+  const otherCourses = filteredCourses
+    .filter(c => !requiredCodes.has(c.code))
+    .sort(sortFn);
 
   return (
     <>
-    <div className={`flex h-[calc(100vh-80px)] print:block print:h-auto transition-opacity duration-300 ${isPending ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
+    <div className="flex h-[calc(100vh-80px)] print:block print:h-auto">
       <FilterSidebar
         selectedYears={selectedYears}
         onYearsChange={setSelectedYears}
         selectedSubject={selectedSubject}
-        onSubjectChange={handleSubjectChange}
+        onSubjectChange={setSelectedSubject}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         instructors={instructors}
@@ -845,9 +787,7 @@ export default function DashboardPage() {
                           showInstructors={true}
                           isRequired={true}
                           planItems={planItems}
-                          instructorCache={instructorCache}
                           isHighlighted={highlightedCode === course.code}
-                          animateChart={!dataFromCache}
                           onAddToPlan={handleAddToPlan}
                           onSwapInPlan={(newItem) => {
                             const current = planItems.find((i) => i.code === newItem.code);
@@ -878,9 +818,7 @@ export default function DashboardPage() {
                           showInstructors={true}
                           isRequired={true}
                           planItems={planItems}
-                          instructorCache={instructorCache}
                           isHighlighted={highlightedCode === course.code}
-                          animateChart={!dataFromCache}
                           onAddToPlan={handleAddToPlan}
                           onSwapInPlan={(newItem) => {
                             const current = planItems.find((i) => i.code === newItem.code);
@@ -911,9 +849,7 @@ export default function DashboardPage() {
                           showInstructors={true}
                           isRequired={false}
                           planItems={planItems}
-                          instructorCache={instructorCache}
                           isHighlighted={highlightedCode === course.code}
-                          animateChart={!dataFromCache}
                           onAddToPlan={handleAddToPlan}
                           onSwapInPlan={(newItem) => {
                             const current = planItems.find((i) => i.code === newItem.code);

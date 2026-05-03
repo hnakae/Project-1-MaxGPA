@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { GradeDistributionChart } from "./grade-distribution-chart";
 import { TrendingUp, TrendingDown, Users, Plus, Check, BookMarked, ArrowLeftRight } from "lucide-react";
-import type { GradeEntry, PlanItem, InstructorRow } from "../lib/saved-plans";
+import type { GradeEntry, PlanItem } from "../lib/saved-plans";
+
+interface InstructorRow {
+  instructor: string;
+  avgGpa: number;
+  gradeData: GradeEntry[];
+}
 
 interface CourseCardProps {
   code: string;
@@ -15,9 +21,7 @@ interface CourseCardProps {
   showInstructors?: boolean;
   isRequired?: boolean;
   planItems?: PlanItem[];
-  instructorCache?: Map<string, InstructorRow[]>;
   isHighlighted?: boolean;
-  animateChart?: boolean;
   onAddToPlan?: (item: PlanItem) => void;
   onSwapInPlan?: (newItem: PlanItem) => void;
 }
@@ -45,47 +49,19 @@ export function CourseCard({
   showInstructors = false,
   isRequired = false,
   planItems = [],
-  instructorCache,
   isHighlighted = false,
-  animateChart = true,
   onAddToPlan,
   onSwapInPlan,
 }: CourseCardProps) {
-  const [topInstructors, setTopInstructors] = useState<InstructorRow[]>(() => {
-    return instructorCache?.get(code) || [];
-  });
-  const [isVisible, setIsVisible] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const [topInstructors, setTopInstructors] = useState<InstructorRow[]>([]);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "300px" } // Load a bit early for smoother experience
-    );
-
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!showInstructors || !isVisible || topInstructors.length > 0) return;
-
+    if (!showInstructors) return;
     fetch(`/api/course-instructors?code=${encodeURIComponent(code)}`)
       .then((r) => r.json())
-      .then((data) => {
-        instructorCache?.set(code, data);
-        setTopInstructors(data);
-      })
+      .then(setTopInstructors)
       .catch(() => {});
-  }, [showInstructors, code, isVisible, instructorCache, topInstructors.length]);
+  }, [showInstructors, code]);
 
   const getRecommendation = (gpa: number): { label: string; color: RecommendationColor; icon: React.ComponentType<{ className?: string }> | null } => {
     if (gpa > 3.5) return { label: "Seek",    color: "emerald", icon: TrendingUp };
@@ -103,7 +79,6 @@ export function CourseCard({
 
   return (
     <div
-      ref={cardRef}
       id={`course-${code.replace(/\s+/g, "-")}`}
       className={`bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col h-full transition-all duration-500 ${
         isHighlighted
@@ -113,18 +88,7 @@ export function CourseCard({
     >
       {/* Chart as "thumbnail" */}
       <div className="bg-slate-50 p-2 h-40 border-b border-slate-100 relative group">
-        {isVisible ? (
-          <GradeDistributionChart 
-            data={gradeData} 
-            courseId={code} 
-            height={160} 
-            isAnimationActive={animateChart} 
-          />
-        ) : (
-          <div className="w-full h-full bg-slate-100/50 rounded flex items-center justify-center">
-             <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-slate-400 animate-spin opacity-20" />
-          </div>
-        )}
+        <GradeDistributionChart data={gradeData} courseId={code} height={160} />
         <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/60 text-[10px] text-white rounded font-medium z-10">
           {totalStudents} students
         </div>
@@ -158,7 +122,7 @@ export function CourseCard({
             {instructors.length > 0 && (
               <div className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
                 <Users className="w-2.5 h-2.5" />
-                <span className="truncate max-w-30">{instructors.join(", ")}</span>
+                <span className="truncate max-w-[120px]">{instructors.join(", ")}</span>
               </div>
             )}
           </div>

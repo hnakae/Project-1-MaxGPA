@@ -11,7 +11,6 @@ interface GradeDistributionChartProps {
   data: GradeData[];
   courseId?: string;
   height?: number | `${number}%`;
-  isAnimationActive?: boolean;
 }
 
 const GRADE_COLORS = {
@@ -21,12 +20,7 @@ const GRADE_COLORS = {
   DNF: "#ef4444", // red-500
 };
 
-export function GradeDistributionChart({ 
-  data, 
-  courseId = 'default', 
-  height = 220,
-  isAnimationActive = true 
-}: GradeDistributionChartProps) {
+export function GradeDistributionChart({ data, courseId = 'default', height = 220 }: GradeDistributionChartProps) {
   // Add fill color to each data point with unique identifiers
   const dataWithColors = data.map((item, index) => ({
     ...item,
@@ -71,13 +65,7 @@ export function GradeDistributionChart({
             return [value, name ?? ""];
           }}
         />
-        <Bar 
-          dataKey="percentage" 
-          radius={[4, 4, 0, 0]} 
-          id={`bar-${courseId}`} 
-          key={`bar-${courseId}`}
-          isAnimationActive={isAnimationActive}
-        />
+        <Bar dataKey="percentage" radius={[4, 4, 0, 0]} id={`bar-${courseId}`} key={`bar-${courseId}`} />
       </BarChart>
     </ResponsiveContainer>
   );
