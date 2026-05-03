@@ -1,13 +1,14 @@
 # SQLite3 connection (robert)
 
+import io
 import sqlite3
 import pandas as pd
 import os
 import glob
 
 DB_FILE = 'db/grade_data.db'
-CSV_FILE = 'data/raw/pub_rec_master_f2015-u2025.csv'
-DEGREE_PLANS_DIR = 'data/meta/degree_plans'
+GRADE_DATA_DIR = 'data/raw'          # drop grade CSVs here; all *.csv files are ingested
+MAJOR_REQUIREMENTS_DIR = 'data/meta/major_requirements'
 RECONCILIATION_FILE = 'data/meta/Reconciliation.csv'
 
 # All columns that carry grade counts (TOT_NON_W is enrollment, not a grade)
@@ -86,7 +87,7 @@ def _setup_schema(cursor):
             FOREIGN KEY(MajorID) REFERENCES Majors(MajorID)
         );
 
-        -- Maps title/number variants in grade history to canonical degree-plan names
+        -- Maps title/number variants in grade history to canonical major requirement names
         CREATE TABLE IF NOT EXISTS Reconciliation (
             RecID      INTEGER PRIMARY KEY AUTOINCREMENT,
             ChangeFrom TEXT NOT NULL,
@@ -137,15 +138,8 @@ def _create_indexes(cursor):
     ''')
 
 
-DATA_DIR = os.path.dirname(CSV_FILE)
-_NON_GRADE_CSVS = {os.path.basename(RECONCILIATION_FILE).lower()}
-
-
-def _load_grade_history(conn, data_dir=DATA_DIR):
-    csv_files = sorted(
-        f for f in glob.glob(os.path.join(data_dir, '*.[Cc][Ss][Vv]'))
-        if os.path.basename(f).lower() not in _NON_GRADE_CSVS
-    )
+def _load_grade_history(conn, data_dir=GRADE_DATA_DIR):
+    csv_files = sorted(glob.glob(os.path.join(data_dir, '*.[Cc][Ss][Vv]')))
     if not csv_files:
         print(f"Warning: no grade CSVs found in '{data_dir}' — Course_Records will be empty.")
         return
@@ -172,48 +166,66 @@ def _load_grade_history(conn, data_dir=DATA_DIR):
     print(f"Course_Records now contains {len(existing_terms)} term(s).")
 
 
-def _load_degree_plans(conn, cursor):
-    if not os.path.isdir(DEGREE_PLANS_DIR):
-        print(f"No degree plans directory at '{DEGREE_PLANS_DIR}' — skipping.")
+def _load_major_requirements(conn, cursor):
+    if not os.path.isdir(MAJOR_REQUIREMENTS_DIR):
+        print(f"No major requirements directory at '{MAJOR_REQUIREMENTS_DIR}' — skipping.")
         return
 
-    plan_files = glob.glob(os.path.join(DEGREE_PLANS_DIR, '*.[Cc][Ss][Vv]'))
+    plan_files = glob.glob(os.path.join(MAJOR_REQUIREMENTS_DIR, '*.[Cc][Ss][Vv]'))
     if not plan_files:
-        print(f"No degree plan CSVs found in '{DEGREE_PLANS_DIR}' — skipping.")
+        print(f"No major requirements CSVs found in '{MAJOR_REQUIREMENTS_DIR}' — skipping.")
         return
 
     for plan_file in sorted(plan_files):
-        # Filename convention: Computer_Science_BA.csv -> "Computer Science BA"
-        major_name = os.path.splitext(os.path.basename(plan_file))[0].replace('_', ' ')
-        print(f"Loading degree plan: {major_name}")
+        # Filename is the major key: CS.csv -> "CS", MATH.csv -> "MATH"
+        major_key = os.path.splitext(os.path.basename(plan_file))[0]
+        print(f"Loading major requirements: {major_key}")
 
-        cursor.execute('INSERT OR IGNORE INTO Majors (MajorName) VALUES (?)', (major_name,))
-        cursor.execute('SELECT MajorID FROM Majors WHERE MajorName = ?', (major_name,))
-        major_id = cursor.fetchone()[0]
+        # Full reload: clear requirements first (FK dep), then groups
+        cursor.execute('DELETE FROM Major_Requirements WHERE Major = ?', (major_key,))
+        cursor.execute('DELETE FROM Requirement_Groups WHERE Major = ?', (major_key,))
 
-        # Full reload: clear existing requirements for this major then re-insert
-        cursor.execute('DELETE FROM Major_Requirements WHERE MajorID = ?', (major_id,))
-
-        df = pd.read_csv(plan_file, dtype=str)
+        df = pd.read_csv(plan_file, dtype=str, keep_default_na=False)
         df.columns = df.columns.str.strip()
 
-        rows = [
-            (
-                major_id,
-                row.get('YEAR', '').strip() or None,
-                row.get('TERM', '').strip() or None,
-                row.get('SUBJ', '').strip(),
-                row.get('NUMB', '').strip(),
-                row.get('TITLE', '').strip() or None,
+        groups: dict = {}  # group_name -> group_id
+        sort_order = 0
+        req_count = 0
+
+        for _, row in df.iterrows():
+            subj = row.get('SUBJ', '').strip()
+            numb = row.get('NUMB', '').strip()
+            if not subj or not numb:
+                continue
+
+            group_name = row.get('GROUP', 'Core Requirements').strip() or 'Core Requirements'
+            # Valid types: "all", "one_sequence", "choose_from"
+            group_type = row.get('GROUP_TYPE', 'all').strip() or 'all'
+            seq_tag = row.get('SEQ', '').strip() or None
+
+            if group_name not in groups:
+                cursor.execute(
+                    'INSERT INTO Requirement_Groups (Major, GroupName, Type, SortOrder) VALUES (?, ?, ?, ?)',
+                    (major_key, group_name, group_type, sort_order),
+                )
+                groups[group_name] = cursor.lastrowid
+                sort_order += 1
+
+            cursor.execute(
+                'INSERT OR IGNORE INTO Major_Requirements (GroupID, Major, Subject, CourseNumber, SequenceTag) VALUES (?, ?, ?, ?, ?)',
+                (groups[group_name], major_key, subj, numb, seq_tag),
             )
-            for _, row in df.iterrows()
-            if row.get('SUBJ', '').strip() and row.get('NUMB', '').strip()
-        ]
-        cursor.executemany('''
-            INSERT INTO Major_Requirements (MajorID, Year, Term, Subject, CourseNumber, Title)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', rows)
-        print(f"  Inserted {len(rows)} requirements for {major_name}.")
+
+            title = row.get('TITLE', '').strip()
+            if title:
+                cursor.execute(
+                    'INSERT OR REPLACE INTO CourseTitles (Subject, CourseNumber, Title) VALUES (?, ?, ?)',
+                    (subj, numb, title),
+                )
+
+            req_count += 1
+
+        print(f"  Loaded {req_count} requirements across {len(groups)} group(s) for {major_key}.")
 
     conn.commit()
 
@@ -238,7 +250,7 @@ def _load_reconciliation(conn, cursor):
     print(f"Loaded {len(rows)} reconciliation mappings.")
 
 
-def initialize_database(data_dir=DATA_DIR):
+def initialize_database(data_dir=GRADE_DATA_DIR):
     os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
 
     print(f"Connecting to database: {DB_FILE}")
@@ -253,7 +265,7 @@ def initialize_database(data_dir=DATA_DIR):
     conn.commit()
 
     _load_grade_history(conn, data_dir)
-    _load_degree_plans(conn, cursor)
+    _load_major_requirements(conn, cursor)
     _load_reconciliation(conn, cursor)
 
     print("Creating indexes...")
@@ -262,6 +274,56 @@ def initialize_database(data_dir=DATA_DIR):
 
     conn.close()
     print("Database initialization complete.")
+
+
+def import_grade_csv(file_obj) -> dict:
+    """
+    Import grade records from a CSV upload into Course_Records.
+
+    Accepts bytes (e.g. FastAPI UploadFile.read()) or any binary/text file-like
+    object. Terms already in the database are replaced so re-uploads and
+    corrections are applied rather than silently ignored.
+
+    Returns:
+        {
+            "rows_inserted": int,
+            "new_terms": list[int],
+            "updated_terms": list[int],
+        }
+    """
+    if isinstance(file_obj, bytes):
+        file_obj = io.BytesIO(file_obj)
+
+    df = pd.read_csv(file_obj, dtype=str)
+    cleaned = clean_and_aggregate_data(df)
+
+    conn = sqlite3.connect(DB_FILE)
+    try:
+        existing_terms = set(
+            pd.read_sql('SELECT DISTINCT Term FROM Course_Records', conn)['Term'].tolist()
+        )
+        incoming_terms = set(cleaned['Term'].unique().tolist())
+
+        updated_terms = sorted(incoming_terms & existing_terms)
+        new_terms = sorted(incoming_terms - existing_terms)
+
+        if updated_terms:
+            placeholders = ','.join('?' * len(updated_terms))
+            conn.execute(
+                f'DELETE FROM Course_Records WHERE Term IN ({placeholders})',
+                updated_terms,
+            )
+
+        cleaned.to_sql('Course_Records', conn, if_exists='append', index=False, chunksize=2000)
+        conn.commit()
+    finally:
+        conn.close()
+
+    return {
+        "rows_inserted": len(cleaned),
+        "new_terms": new_terms,
+        "updated_terms": updated_terms,
+    }
 
 
 if __name__ == '__main__':

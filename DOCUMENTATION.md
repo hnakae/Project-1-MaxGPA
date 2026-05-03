@@ -1,3 +1,22 @@
+## CSV Import via API — 2026-05-03
+
+### `db/database.py` — `import_grade_csv(file_obj)`
+New public function for runtime CSV ingestion from the API layer.
+
+- Accepts `bytes` (FastAPI `UploadFile.read()`) or any binary/text file-like object.
+- Runs the same `clean_and_aggregate_data` pipeline used during initial DB setup.
+- Terms present in the CSV **replace** existing rows for those terms (delete + re-insert), so corrections and updates are applied rather than skipped.
+- Terms not yet in the DB are inserted normally.
+- Returns `{"rows_inserted": int, "new_terms": list[int], "updated_terms": list[int]}`.
+
+Intended usage in the API layer:
+```python
+contents = await file.read()
+result = import_grade_csv(contents)
+```
+
+---
+
 ## Degree Requirements & Admin Portal — 2026-04-25
 
 ### Database
@@ -122,7 +141,7 @@ Here's a plain breakdown of each feature based on the actual project intent:
   what makes the tool a planning tool rather
   than just a grade lookup. The degree plan data
    would need to be loaded from CSVs into
-  data/meta/degree_plans/, which is currently
+  data/meta/major_requirements/, which is currently
   they can intentionally schedule around that instructor.
 
   View Mode (All Instructors / Specific Teacher)
@@ -139,7 +158,7 @@ Here's a plain breakdown of each feature based on the actual project intent:
   CS-prefixed courses — it shows the exact required sequence for
   that degree. This is what makes the tool a planning tool rather
   than just a grade lookup. The degree plan data would need to be
-  loaded from CSVs into data/meta/degree_plans/, which is
+  loaded from CSVs into data/meta/major_requirements/, which is
   currently empty.
 
   Saved Plans

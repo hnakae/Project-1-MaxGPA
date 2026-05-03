@@ -1,4 +1,4 @@
-.PHONY: help install dev-fe dev-be test-fe test-be test-app lint db-seed docker-up docker-down push dev
+.PHONY: help install dev-fe dev-be test-fe test-be test-app test-db lint db-init docker-up docker-down push
 
 # Default target: show help
 help:
@@ -9,8 +9,9 @@ help:
 	@echo "  test-fe        Run frontend tests with Vitest"
 	@echo "  test-app       Run app unit tests (tests/app_tests)"
 	@echo "  test-be        Run backend tests with Pytest"
+	@echo "  test-db        Run database tests with Pytest"
 	@echo "  lint           Run ESLint"
-	@echo "  db-seed        Reset and seed the database"
+	@echo "  db-init        Initialize the database from data/raw/ and data/meta/"
 	@echo "  docker-up      Start services using docker-compose"
 	@echo "  docker-down    Stop services using docker-compose"
 	@echo "  push m=\"msg\"   Git add, commit, and push (e.g., make push m=\"feature: xyz\")"
@@ -35,15 +36,18 @@ test-app:
 	npx vitest run --config tests/vitest.config.ts tests/app_tests
 
 test-be:
-	pytest tests/api_tests
+	python3 -m pytest tests/api_tests
+
+test-db:
+	python3 -m pytest tests/db_tests -v
 
 # Linting
 lint:
 	npm run lint
 
 # Database
-db-seed:
-	python3 db/seed_data.py
+db-init:
+	python3 init_db.py
 
 # Docker
 docker-up:
