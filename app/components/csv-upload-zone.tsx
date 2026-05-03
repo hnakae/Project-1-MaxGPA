@@ -9,9 +9,10 @@ interface UploadedCourseSummary {
 
 interface CsvUploadZoneProps {
   onUploadComplete: (data: UploadedCourseSummary[]) => void;
+  uploadEndpoint?: string;
 }
 
-export function CsvUploadZone({ onUploadComplete }: CsvUploadZoneProps) {
+export function CsvUploadZone({ onUploadComplete, uploadEndpoint = 'api/upload-csv'}: CsvUploadZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
@@ -43,24 +44,27 @@ export function CsvUploadZone({ onUploadComplete }: CsvUploadZoneProps) {
     }
   };
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     setFileName(file.name);
     setUploadStatus("uploading");
     setUploadProgress(0);
 
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setUploadStatus("success");
-          // Mock data parsing
-          onUploadComplete([{ course: "CS 210", avgGpa: 3.72 }]);
-          return 100;
-        }
-        return prev + 10;
+    // Mock data parsing
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      // Send file to backend
+      const response = await fetch(uploadEndpoint, {
+        method: 'POST',
+        body: formData,
       });
-    }, 150);
+      const result = await response.json();
+      onUploadComplete(result);
+      setUploadStatus("success");
+    } catch (error) {
+      console.error("Error uploading csv:, ", error);
+      setUploadStatus("error");
+    }
   };
 
   return (
