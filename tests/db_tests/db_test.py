@@ -136,7 +136,7 @@ def tmp_req_db(tmp_path, monkeypatch):
             UNIQUE(GroupID, Subject, CourseNumber),
             FOREIGN KEY(GroupID) REFERENCES Requirement_Groups(GroupID)
         );
-        CREATE TABLE CourseTitles (
+        CREATE TABLE Course_Titles (
             Subject      TEXT NOT NULL,
             CourseNumber TEXT NOT NULL,
             Title        TEXT NOT NULL,
@@ -236,7 +236,7 @@ class TestLoadDegreePlans:
 
         conn = sqlite3.connect(tmp_req_db)
         title = conn.execute(
-            "SELECT Title FROM CourseTitles WHERE Subject='CS' AND CourseNumber='210'"
+            "SELECT Title FROM Course_Titles WHERE Subject='CS' AND CourseNumber='210'"
         ).fetchone()
         conn.close()
 
@@ -248,7 +248,7 @@ class TestLoadDegreePlans:
         self._run(tmp_req_db, tmp_path, monkeypatch)
 
         conn = sqlite3.connect(tmp_req_db)
-        row = conn.execute("SELECT * FROM CourseTitles").fetchone()
+        row = conn.execute("SELECT * FROM Course_Titles").fetchone()
         conn.close()
 
         assert row is None

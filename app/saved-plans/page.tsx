@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { BookOpen, Calendar, ChevronDown, Download, Trash2, User } from "lucide-react";
 import { getSavedPlans, deletePlan } from "../lib/saved-plans";
 import type { SavedPlan } from "../lib/saved-plans";
+import Link from "next/link";
 
 export default function SavedPlansPage() {
   const [plans, setPlans] = useState<SavedPlan[]>([]);
@@ -68,9 +69,9 @@ export default function SavedPlansPage() {
           <p className="mb-6 text-slate-600">
             Search for a course on the dashboard, pick instructors using <strong>Add</strong>, then click <strong>Save Plan</strong>.
           </p>
-          <a href="/" className="inline-flex items-center gap-2 px-5 py-2.5 text-white rounded-full btn-forest">
+          <Link href="/" className="inline-flex items-center gap-2 px-5 py-2.5 text-white rounded-full btn-forest">
             Go to Dashboard
-          </a>
+          </Link>
         </div>
       ) : (
         <div className="grid gap-6">
