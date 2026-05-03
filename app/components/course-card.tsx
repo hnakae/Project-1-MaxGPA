@@ -21,6 +21,7 @@ interface CourseCardProps {
   showInstructors?: boolean;
   isRequired?: boolean;
   planItems?: PlanItem[];
+  isHighlighted?: boolean;
   onAddToPlan?: (item: PlanItem) => void;
   onSwapInPlan?: (newItem: PlanItem) => void;
 }
@@ -48,6 +49,7 @@ export function CourseCard({
   showInstructors = false,
   isRequired = false,
   planItems = [],
+  isHighlighted = false,
   onAddToPlan,
   onSwapInPlan,
 }: CourseCardProps) {
@@ -76,7 +78,14 @@ export function CourseCard({
     currentPlanItem?.instructor === instructor;
 
   return (
-    <div id={`course-${code.replace(/\s+/g, "-")}`} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-200">
+    <div
+      id={`course-${code.replace(/\s+/g, "-")}`}
+      className={`bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col h-full transition-all duration-500 ${
+        isHighlighted
+          ? "border-emerald-500 ring-4 ring-emerald-500/20 scale-[1.02] shadow-lg z-10"
+          : "border-slate-200 hover:shadow-md"
+      }`}
+    >
       {/* Chart as "thumbnail" */}
       <div className="bg-slate-50 p-2 h-40 border-b border-slate-100 relative group">
         <GradeDistributionChart data={gradeData} courseId={code} height={160} />

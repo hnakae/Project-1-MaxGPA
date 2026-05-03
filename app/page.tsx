@@ -60,6 +60,7 @@ export default function DashboardPage() {
   const [planName, setPlanName] = useState("");
   const [savedConfirm, setSavedConfirm] = useState(false);
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
+  const [highlightedCode, setHighlightedCode] = useState<string | null>(null);
   const [upgradeSuggestions, setUpgradeSuggestions] = useState<UpgradeSuggestion[]>([]);
   const [scrolledDown, setScrolledDown] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
@@ -398,7 +399,9 @@ export default function DashboardPage() {
   const scrollToCourse = (code: string) => {
     const element = document.getElementById(`course-${code.replace(/\s+/g, "-")}`);
     if (element) {
-      element.scrollIntoView({ behavior: "instant", block: "center" });
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedCode(code);
+      setTimeout(() => setHighlightedCode(null), 3000);
     }
   };
 
@@ -784,6 +787,7 @@ export default function DashboardPage() {
                           showInstructors={true}
                           isRequired={true}
                           planItems={planItems}
+                          isHighlighted={highlightedCode === course.code}
                           onAddToPlan={handleAddToPlan}
                           onSwapInPlan={(newItem) => {
                             const current = planItems.find((i) => i.code === newItem.code);
@@ -814,6 +818,7 @@ export default function DashboardPage() {
                           showInstructors={true}
                           isRequired={true}
                           planItems={planItems}
+                          isHighlighted={highlightedCode === course.code}
                           onAddToPlan={handleAddToPlan}
                           onSwapInPlan={(newItem) => {
                             const current = planItems.find((i) => i.code === newItem.code);
@@ -844,6 +849,7 @@ export default function DashboardPage() {
                           showInstructors={true}
                           isRequired={false}
                           planItems={planItems}
+                          isHighlighted={highlightedCode === course.code}
                           onAddToPlan={handleAddToPlan}
                           onSwapInPlan={(newItem) => {
                             const current = planItems.find((i) => i.code === newItem.code);

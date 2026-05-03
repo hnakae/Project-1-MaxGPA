@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, ChevronDown } from "lucide-react";
-import * as Accordion from "@radix-ui/react-accordion";
+import { Search, ChevronDown, X } from "lucide-react";
 
 interface FilterSidebarProps {
   selectedYears: string[];
@@ -59,63 +58,67 @@ export function FilterSidebar({
       <div className="p-6">
         <h3 className="text-slate-900 mb-6">Filters</h3>
 
-        <Accordion.Root type="multiple" defaultValue={["course", "instructor", "subject", "year"]} className="space-y-3">
-
-          <Accordion.Item value="course" className="border border-slate-200 rounded-lg overflow-hidden">
-            <Accordion.Header>
-              <Accordion.Trigger className="w-full flex items-center justify-between p-3 hover:bg-slate-50 transition-colors group">
-                <span className="font-medium text-slate-900">Search Courses</span>
-                <ChevronDown className="w-5 h-5 text-slate-500 transition-transform group-data-[state=open]:rotate-180" />
-              </Accordion.Trigger>
-            </Accordion.Header>
-            <Accordion.Content className="px-3 pb-3 bg-slate-50">
+        <div className="space-y-4">
+          {/* Search Courses */}
+          <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <div className="w-full flex items-center justify-between p-3 bg-white">
+              <span className="font-medium text-slate-900">Search Courses</span>
+            </div>
+            <div className="px-3 pb-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="e.g. CS 210"
+                  placeholder="e.g. CS 422"
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  className="w-full pl-10 pr-10 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => onSearchChange("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-            </Accordion.Content>
-          </Accordion.Item>
+            </div>
+          </div>
 
-          <Accordion.Item value="instructor" className="border border-slate-200 rounded-lg overflow-hidden">
-            <Accordion.Header>
-              <Accordion.Trigger className="w-full flex items-center justify-between p-3 hover:bg-slate-50 transition-colors group">
-                <span className="font-medium text-slate-900">Instructor</span>
-                <ChevronDown className="w-5 h-5 text-slate-500 transition-transform group-data-[state=open]:rotate-180" />
-              </Accordion.Trigger>
-            </Accordion.Header>
-            <Accordion.Content className="px-3 pb-3 bg-slate-50">
-              <select
-                value={selectedInstructor}
-                onChange={(e) => onInstructorChange(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="">All instructors</option>
-                {instructors.map((name) => (
-                  <option key={name} value={name}>{name}</option>
-                ))}
-              </select>
-            </Accordion.Content>
-          </Accordion.Item>
+          {/* Instructor */}
+          <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <div className="w-full flex items-center justify-between p-3 bg-white">
+              <span className="font-medium text-slate-900">Instructor</span>
+            </div>
+            <div className="px-3 pb-3">
+              <div className="relative">
+                <select
+                  value={selectedInstructor}
+                  onChange={(e) => onInstructorChange(e.target.value)}
+                  className="w-full appearance-none px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="">All Instructors</option>
+                  {instructors.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+          </div>
 
-          <Accordion.Item value="subject" className="border border-slate-200 rounded-lg overflow-hidden">
-            <Accordion.Header>
-              <Accordion.Trigger className="w-full flex items-center justify-between p-3 hover:bg-slate-50 transition-colors group">
-                <span className="font-medium text-slate-900">Major</span>
-                <ChevronDown className="w-5 h-5 text-slate-500 transition-transform group-data-[state=open]:rotate-180" />
-              </Accordion.Trigger>
-            </Accordion.Header>
-            <Accordion.Content className="px-3 pb-3 bg-slate-50">
+          {/* Major */}
+          <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <div className="w-full flex items-center justify-between p-3 bg-white">
+              <span className="font-medium text-slate-900">Major</span>
+            </div>
+            <div className="px-3 pb-3">
               <div className="space-y-1">
                 {MAJORS.map(({ label, subject }) => (
                   <label
                     key={subject}
-                    className="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-white transition-colors"
+                    className="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-slate-50 transition-colors"
                   >
                     <input
                       type="radio"
@@ -129,18 +132,16 @@ export function FilterSidebar({
                   </label>
                 ))}
               </div>
-            </Accordion.Content>
-          </Accordion.Item>
+            </div>
+          </div>
 
-          <Accordion.Item value="year" className="border border-slate-200 rounded-lg overflow-hidden">
-            <Accordion.Header>
-              <Accordion.Trigger className="w-full flex items-center justify-between p-3 hover:bg-slate-50 transition-colors group">
-                <span className="font-medium text-slate-900">Academic Year</span>
-                <ChevronDown className="w-5 h-5 text-slate-500 transition-transform group-data-[state=open]:rotate-180" />
-              </Accordion.Trigger>
-            </Accordion.Header>
-            <Accordion.Content className="px-3 pb-3 bg-slate-50">
-              <label className="flex items-center gap-3 p-2 mb-1 rounded cursor-pointer hover:bg-white transition-colors border-b border-slate-200 pb-2">
+          {/* Academic Year */}
+          <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <div className="w-full flex items-center justify-between p-3 bg-white">
+              <span className="font-medium text-slate-900">Academic Year</span>
+            </div>
+            <div className="px-3 pb-3">
+              <label className="flex items-center gap-3 p-2 mb-1 rounded cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-200 pb-2">
                 <input
                   type="checkbox"
                   checked={selectedYears.length === academicYears.length && academicYears.length > 0}
@@ -160,7 +161,7 @@ export function FilterSidebar({
                 {academicYears.map((year) => (
                   <label
                     key={year}
-                    className="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-white transition-colors"
+                    className="flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-slate-50 transition-colors"
                   >
                     <input
                       type="checkbox"
@@ -173,10 +174,9 @@ export function FilterSidebar({
                   </label>
                 ))}
               </div>
-            </Accordion.Content>
-          </Accordion.Item>
-
-        </Accordion.Root>
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
   );
