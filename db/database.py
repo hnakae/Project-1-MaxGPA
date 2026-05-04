@@ -282,7 +282,7 @@ def initialize_database(data_dir=GRADE_DATA_DIR):
     print("Database initialization complete.")
 
 
-def import_grade_csv(file_obj) -> dict:
+def import_grade_csv(file_obj, db_path=DB_FILE) -> dict:
     """
     Import grade records from a CSV upload into Course_Records.
 
@@ -302,8 +302,7 @@ def import_grade_csv(file_obj) -> dict:
 
     df = pd.read_csv(file_obj, dtype=str)
     cleaned = clean_and_aggregate_data(df)
-
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(db_path)
     try:
         if 'TITLE' in cleaned.columns:
             titles = (
@@ -347,4 +346,4 @@ def import_grade_csv(file_obj) -> dict:
 
 if __name__ == '__main__':
     import sys
-    initialize_database(sys.argv[1] if len(sys.argv) > 1 else DATA_DIR)
+    initialize_database(sys.argv[1] if len(sys.argv) > 1 else GRADE_DATA_DIR)

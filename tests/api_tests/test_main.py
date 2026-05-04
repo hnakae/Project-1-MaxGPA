@@ -4,6 +4,8 @@ import os
 import asyncio
 import shutil
 import sqlite3
+from fastapi import UploadFile
+import io
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.append(parent_dir)
@@ -84,6 +86,17 @@ class TestAPI:
         cur = self.conn.execute("SELECT * FROM Major_Requirements WHERE ReqID = ?", (tmp_id,)).fetchall()
         assert [dict(row) for row in cur] == []
 
+    def test_insert_csv(self):
+        test_csv_data = "TERM,TERM_DESC,SUBJ,NUMB,CRN,INSTRUCTOR,AP,A,AM,BP,B,BM,CP,C,CM,DP,D,DM,F,P,N,OTHER,W,TOT_NON_W\n201601,Fall 2016,CS,606,10001,\"TEST, TEST TEST\",100,100,2,2,5,0,0,1,0,0,0,0,0,1,0,0,0,100"
+        file_bytes = io.BytesIO(test_csv_data.encode('utf-8'))
+        test = UploadFile(
+            file=file_bytes,
+            filename="test.csv"
+        )
+        asyncio.run(api.upload_csv(test, self.PATH))
+        cur = self.conn.execute("SELECT * FROM Course_Records WHERE Subject = ? AND CourseNumber = ?", ("CS", "606")).fetchall()
+        assert [dict(row) for row in cur] == [{'RecordID': 47102, 'Term': 201601, 'TermDesc': 'Fall 2016', 'Subject': 'CS', 'CourseNumber': '606', 'CRN': '10001', 'Instructor': 'TEST, TEST TEST', 'Grade_A': 202, 'Grade_B': 7, 'Grade_C': 1, 'Grade_DNF': 0, 'Pass': 1, 'NoPass': 0, 'Other': 0, 'Withdraw': 0, 'TOT_NON_W': 100}]
+    
     @pytest.fixture
     def fake_peyton_course_data(self):
         try:
