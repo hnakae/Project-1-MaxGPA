@@ -123,6 +123,34 @@ async def add_requirement(body: RequirementIn, db_path=DB_PATH):
     conn.close()
     return {"id": req_id}
 
+@app.post("/api/preview-degree-plan")
+async def preview_degree_plan(file: UploadFile = File(...)):
+    try:
+        contents = await file.read()
+        result = database.preview_degree_plan_csv(contents)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not parse CSV: {str(e)}")
+    finally:
+        await file.close()
+    return result
+
+
+@app.post("/api/upload-degree-plan")
+async def upload_degree_plan(major: str, file: UploadFile = File(...), db_path=DB_PATH):
+    if major not in ("CS", "MATH", "BA"):
+        raise HTTPException(status_code=400, detail="major must be CS, MATH, or BA")
+    try:
+        contents = await file.read()
+        result = database.import_degree_plan_csv(contents, major, db_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not import degree plan: {str(e)}")
+    finally:
+        await file.close()
+    return result
+
+
 @app.post("/api/preview-csv")
 async def preview_csv(file: UploadFile = File(...)):
     try:

@@ -386,6 +386,115 @@ def preview_grade_csv(file_obj) -> dict:
     }
 
 
+def preview_degree_plan_csv(file_obj) -> dict:
+    """
+    Read a degree-plan CSV and return the column headings plus the first row
+    that has non-empty SUBJ and NUMB, without writing to the database.
+
+    Returns:
+        {
+            "columns":        list[str],   # headings from row 1
+            "first_valid_row": dict,        # field → value for first valid row
+            "total_courses":  int,          # count of rows with SUBJ + NUMB
+        }
+    Raises ValueError if no valid row is found.
+    """
+    if isinstance(file_obj, bytes):
+        file_obj = io.BytesIO(file_obj)
+
+    df = pd.read_csv(file_obj, dtype=str, keep_default_na=False)
+    df.columns = df.columns.str.strip()
+
+    if 'SUBJ' not in df.columns or 'NUMB' not in df.columns:
+        raise ValueError("CSV must have SUBJ and NUMB columns.")
+
+    valid = df[df['SUBJ'].str.strip().ne('') & df['NUMB'].str.strip().ne('')]
+    if valid.empty:
+        raise ValueError("No valid rows found — each row must have SUBJ and NUMB.")
+
+    first_row = valid.iloc[0]
+    fields = {
+        col: str(first_row[col]).strip()
+        for col in df.columns
+        if str(first_row[col]).strip()
+    }
+
+    return {
+        "columns": list(df.columns),
+        "first_valid_row": fields,
+        "total_courses": len(valid),
+    }
+
+
+def import_degree_plan_csv(file_obj, major_key: str, db_path=DB_FILE) -> dict:
+    """
+    Import a degree-plan CSV for one major, replacing all existing requirement
+    groups and requirements for that major.
+
+    Returns:
+        {"major": str, "groups_created": int, "courses_inserted": int}
+    """
+    if isinstance(file_obj, bytes):
+        file_obj = io.BytesIO(file_obj)
+
+    df = pd.read_csv(file_obj, dtype=str, keep_default_na=False)
+    df.columns = df.columns.str.strip()
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('PRAGMA foreign_keys=ON')
+
+    try:
+        cursor.execute('DELETE FROM Major_Requirements WHERE Major = ?', (major_key,))
+        cursor.execute('DELETE FROM Requirement_Groups WHERE Major = ?', (major_key,))
+
+        groups: dict = {}
+        sort_order = 0
+        courses_inserted = 0
+
+        for _, row in df.iterrows():
+            subj = row.get('SUBJ', '').strip()
+            numb = row.get('NUMB', '').strip()
+            if not subj or not numb:
+                continue
+
+            group_name = row.get('GROUP', 'Core Requirements').strip() or 'Core Requirements'
+            group_type = row.get('GROUP_TYPE', 'all').strip() or 'all'
+            seq_tag = row.get('SEQ', '').strip() or None
+
+            if group_name not in groups:
+                cursor.execute(
+                    'INSERT INTO Requirement_Groups (Major, GroupName, Type, SortOrder) VALUES (?, ?, ?, ?)',
+                    (major_key, group_name, group_type, sort_order),
+                )
+                groups[group_name] = cursor.lastrowid
+                sort_order += 1
+
+            cursor.execute(
+                'INSERT OR IGNORE INTO Major_Requirements (GroupID, Major, Subject, CourseNumber, SequenceTag) VALUES (?, ?, ?, ?, ?)',
+                (groups[group_name], major_key, subj, numb, seq_tag),
+            )
+
+            title = row.get('TITLE', '').strip()
+            if title:
+                cursor.execute(
+                    'INSERT OR REPLACE INTO Course_Titles (Subject, CourseNumber, Title) VALUES (?, ?, ?)',
+                    (subj, numb, title),
+                )
+
+            courses_inserted += 1
+
+        conn.commit()
+    finally:
+        conn.close()
+
+    return {
+        "major": major_key,
+        "groups_created": len(groups),
+        "courses_inserted": courses_inserted,
+    }
+
+
 if __name__ == '__main__':
     import sys
     initialize_database(sys.argv[1] if len(sys.argv) > 1 else GRADE_DATA_DIR)

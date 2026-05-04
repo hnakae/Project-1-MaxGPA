@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { CsvUploadZone } from "../components/csv-upload-zone";
+import { DegreePlanUploadZone } from "../components/degree-plan-upload-zone";
 import type { RequirementGroup } from "../lib/requirements";
 
 const MAJORS = [
@@ -49,6 +50,7 @@ export default function AdminPage() {
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupType, setNewGroupType] = useState<string>("all");
   const [addingGroup, setAddingGroup] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setLoading(true);
@@ -63,7 +65,7 @@ export default function AdminPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [selectedMajor]);
+  }, [selectedMajor, refreshKey]);
 
   const fetchCourseOptions = async (groupId: number, subject: string) => {
     const res = await fetch(`/api/courses?subject=${subject}`);
@@ -178,6 +180,38 @@ export default function AdminPage() {
           Upload CSV with columns: TERM, TERM_DESC, SUBJ, NUMB, TITLE (optional), CRN, INSTRUCTOR, and grade distribution columns
         </p>
         <CsvUploadZone />
+      </section>
+
+      {/* Degree plan import */}
+      <section className="mb-12">
+        <h2 className="text-slate-900 mb-1">Import Degree Plan</h2>
+        <p className="mb-4 text-sm text-slate-600">
+          Upload a degree-plan CSV for one major. Required columns: <code className="bg-slate-100 px-1 rounded text-xs">GROUP, GROUP_TYPE, SUBJ, NUMB</code>. Optional: <code className="bg-slate-100 px-1 rounded text-xs">SEQ, TITLE</code>.
+        </p>
+
+        {/* Major tabs */}
+        <div className="mb-4 flex gap-2">
+          {MAJORS.map((m) => (
+            <button
+              key={m.key}
+              onClick={() => setSelectedMajor(m.key)}
+              className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
+                selectedMajor === m.key
+                  ? "bg-forest-900 text-white"
+                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+
+        <DegreePlanUploadZone
+          key={selectedMajor}
+          major={selectedMajor}
+          majorLabel={MAJORS.find((m) => m.key === selectedMajor)?.label ?? selectedMajor}
+          onImportComplete={() => setRefreshKey((k) => k + 1)}
+        />
       </section>
 
       {/* Degree requirements */}
