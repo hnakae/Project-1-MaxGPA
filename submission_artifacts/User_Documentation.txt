@@ -8,6 +8,29 @@ Last Modified: 2026-05-04
 ================================================================================
 
 --------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+
+  Introduction
+  Interface Overview
+
+  Student Tasks
+    Task 1  Select your major and see which courses are required
+    Task 2  Choose which years of grade data to include
+    Task 3  Find the best instructor for a required course
+    Task 4  Add a course to your plan
+    Task 5  Generate an optimal plan automatically
+    Task 6  Save your completed plan
+    Task 7  View and export a saved plan to PDF
+
+  Admin Tasks
+    Task 8   Upload new grade-history data
+    Task 9   Import a degree plan for a major
+    Task 10  Manually edit requirement groups
+
+  Troubleshooting
+
+--------------------------------------------------------------------------------
 INTRODUCTION
 --------------------------------------------------------------------------------
 
