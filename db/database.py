@@ -10,6 +10,14 @@ DB_FILE = 'db/grade_data.db'
 GRADE_DATA_DIR = 'data/raw/'          # drop grade CSVs here; all *.csv files are ingested
 MAJOR_REQUIREMENTS_DIR = 'data/meta/major_requirements/'
 
+# Maps degree-plan CSV filename stems to the short major key used throughout the DB and API.
+# Update this when adding new degree programs.
+MAJOR_KEY_MAP = {
+    "Computer_Science_BA":       "CS",
+    "Mathematics_BA":            "MATH",
+    "Business_Administration_BA": "BA",
+}
+
 # All columns that carry grade counts (TOT_NON_W is enrollment, not a grade)
 GRADE_COLS = [
     'AP', 'A', 'AM', 'BP', 'B', 'BM', 'CP', 'C', 'CM',
@@ -195,9 +203,9 @@ def _load_major_requirements(conn, cursor):
         return
 
     for plan_file in sorted(plan_files):
-        # Filename is the major key: CS.csv -> "CS", MATH.csv -> "MATH"
-        major_key = os.path.splitext(os.path.basename(plan_file))[0]
-        print(f"Loading major requirements: {major_key}")
+        stem = os.path.splitext(os.path.basename(plan_file))[0]
+        major_key = MAJOR_KEY_MAP.get(stem, stem)
+        print(f"Loading major requirements: {major_key} (from {stem}.csv)")
 
         # Full reload: clear requirements first (FK dep), then groups
         cursor.execute('DELETE FROM Major_Requirements WHERE Major = ?', (major_key,))

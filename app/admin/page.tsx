@@ -175,7 +175,7 @@ export default function AdminPage() {
       <section className="mb-12">
         <h2 className="text-slate-900 mb-2">Import Grade Data</h2>
         <p className="mb-4 text-sm text-slate-600">
-          Upload CSV with format: TERM,TERM_DESC,SUBJ,NUMB,CRN,INSTRUCTOR,AP,A,AM,BP,B,BM,CP,C,CM,DP,D,DM,F,P,N,OTHER,W,TOT_NON_W
+          Upload CSV with columns: TERM, TERM_DESC, SUBJ, NUMB, TITLE (optional), CRN, INSTRUCTOR, and grade distribution columns
         </p>
         <CsvUploadZone onUploadComplete={() => {}} />
       </section>
