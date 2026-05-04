@@ -4,7 +4,6 @@ import sqlite3
 import os
 import sys
 from typing import Optional
-import shutil
 
 app = FastAPI()
 
@@ -125,9 +124,9 @@ async def add_requirement(body: RequirementIn, db_path=DB_PATH):
     return {"id": req_id}
 
 @app.post("/api/upload-csv")
-async def upload_csv(file: UploadFile = File(...)):
+async def upload_csv(file: UploadFile = File(...), db_path=DB_PATH):
     try:
-        result = database.import_grade_csv(file.file)
+        result = database.import_grade_csv(file.file, db_path)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Could not save file: {str(e)}")
     finally:

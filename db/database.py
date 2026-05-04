@@ -276,7 +276,7 @@ def initialize_database(data_dir=GRADE_DATA_DIR):
     print("Database initialization complete.")
 
 
-def import_grade_csv(file_obj) -> dict:
+def import_grade_csv(file_obj, db_path=DB_FILE) -> dict:
     """
     Import grade records from a CSV upload into Course_Records.
 
@@ -296,8 +296,7 @@ def import_grade_csv(file_obj) -> dict:
 
     df = pd.read_csv(file_obj, dtype=str)
     cleaned = clean_and_aggregate_data(df)
-
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(db_path)
     try:
         existing_terms = set(
             pd.read_sql('SELECT DISTINCT Term FROM Course_Records', conn)['Term'].tolist()
