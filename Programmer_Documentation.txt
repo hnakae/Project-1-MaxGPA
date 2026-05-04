@@ -1,0 +1,420 @@
+================================================================================
+MaxGPA — Programmer Documentation
+CIS 422/522 Software Methodologies — Project 1
+Group 7
+Authors: Keagan Koski, Hiro Nakae, Peyton Phillips, Robert Mimms
+Created: Spring 2026
+Last Modified: 2026-05-04
+================================================================================
+
+TABLE OF CONTENTS
+  1. System Architecture
+  2. Database Layer (db/database.py)
+  3. API Layer (api/main.py)
+  4. Frontend Layer (app/)
+  5. Key Data Flows
+  6. How to Extend the System
+  7. Testing
+
+================================================================================
+1. SYSTEM ARCHITECTURE
+================================================================================
+
+Three-layer architecture:
+
+  Browser --> Next.js (port 3000) --> FastAPI (port 8000) --> SQLite (grade_data.db)
+
+All data fetching is client-side fetch() from "use client" React components.
+The browser calls FastAPI directly. Next.js serves the UI; it does not proxy
+API calls server-side (in the current local-demo configuration).
+
+Layers:
+  Layer 1: SQLite database     db/grade_data.db
+  Layer 2: FastAPI backend     api/main.py
+  Layer 3: Next.js frontend    app/
+
+================================================================================
+2. DATABASE LAYER
+================================================================================
+
+File: db/database.py
+
+--------------------------------------------------------------------------------
+2a. Schema — 6 Tables
+--------------------------------------------------------------------------------
+
+Course_Records
+  Stores one row per (term, course, instructor) combination.
+  Columns: RecordID (PK), Term, TermDesc, Subject, CourseNumber, CRN,
+           Instructor, Grade_A, Grade_B, Grade_C, Grade_DNF,
+           Pass, NoPass, Other, Withdraw, TOT_NON_W
+
+  Grade columns aggregate raw UO grade codes:
+    Grade_A   = A+ + A + A-
+    Grade_B   = B+ + B + B-
+    Grade_C   = C+ + C + C-
+    Grade_DNF = D+ + D + D- + F + N   (Did Not Pass)
+
+Course_Titles
+  Stores human-readable course titles.
+  Columns: Subject (PK), CourseNumber (PK), Title
+  Populated from the TITLE column in grade-history CSVs and degree plan CSVs.
+
+Requirement_Groups
+  One row per named group within a major's degree plan.
+  Columns: GroupID (PK), Major, GroupName, Type, SortOrder
+  Type values:
+    "all"          — student must take every course in the group
+    "choose_from"  — student must take at least one course
+    "one_sequence" — student must complete one full sub-sequence (A, B, C, ...)
+
+Major_Requirements
+  Maps individual courses to a Requirement_Group.
+  Columns: ReqID (PK), GroupID (FK), Major, Subject, CourseNumber, SequenceTag
+  SequenceTag ("A", "B", ...) identifies which sub-sequence a course belongs to
+  within a one_sequence group.
+
+  Supported Major keys: "CS", "MATH", "BA"
+
+--------------------------------------------------------------------------------
+2b. Key Functions
+--------------------------------------------------------------------------------
+
+initialize_database(data_dir)
+  Reads all *.csv from data/raw/ and degree plan CSVs from
+  data/meta/major_requirements/, loads them into grade_data.db.
+  Called by init_db.py (make db-init).
+
+clean_and_aggregate_data(df)
+  Preprocessing step for grade CSVs. Drops redacted rows (grade = '*'),
+  casts grade counts to int, sums grade variants into A/B/C/DNF buckets,
+  renames SUBJ→Subject, NUMB→CourseNumber, etc.
+
+load_reconciliation(path=None)
+  Reads data/meta/Reconciliation.csv.
+  Returns two dicts:
+    title_map       — {old_title: canonical_title}
+    course_num_map  — {old_course_number: canonical_number}
+  Used to normalize UO CSV naming inconsistencies before import.
+  Rows with spaces or >8 chars in CHANGE_FROM → title_map.
+  Short, no-space values → course_num_map (e.g., "101Z" → "101").
+
+apply_reconciliation(df, title_map, course_num_map)
+  Applies reconciliation mappings to a grade DataFrame in place.
+  Called inside import_grade_csv() after clean_and_aggregate_data().
+
+import_grade_csv(file_obj, db_path=None)
+  Accepts bytes or a file-like object (FastAPI UploadFile.read() or BytesIO).
+  Cleans, reconciles, then inserts into Course_Records.
+  If a term already exists, deletes those rows and re-inserts (update semantics).
+  Returns: {"rows_inserted": int, "new_terms": list, "updated_terms": list}
+
+preview_grade_csv(file_obj)
+  Reads the CSV without writing to the DB.
+  Returns: {"columns": list, "first_valid_row": dict}
+  The first_valid_row is the first row with no redacted ('*') grade values.
+
+import_degree_plan_csv(file_obj, major_key, db_path=None)
+  Bulk-replaces all Requirement_Groups and Major_Requirements for a major.
+  Reads GROUP, GROUP_TYPE, SUBJ, NUMB, SEQ, TITLE columns from the CSV.
+  Also upserts Course_Titles when TITLE is provided.
+  Returns: {"major": str, "groups_created": int, "courses_inserted": int}
+
+preview_degree_plan_csv(file_obj)
+  Reads the degree-plan CSV without writing.
+  Returns: {"columns": list, "first_valid_row": dict, "total_courses": int}
+
+--------------------------------------------------------------------------------
+2c. Reconciliation File Format
+--------------------------------------------------------------------------------
+
+File: data/meta/Reconciliation.csv
+
+  CHANGE_FROM,TO
+  Intro to Business,Introduction to Business
+  101Z,101
+
+Column CHANGE_FROM: the string as it appears in the grade-history CSV.
+Column TO: the canonical string to replace it with.
+
+Rule: if CHANGE_FROM has no spaces and is 8 characters or fewer, it is treated
+as a CourseNumber mapping. Otherwise it is treated as a TITLE mapping.
+
+The file is applied automatically on every grade-history import. Adding new
+rows to this file and re-importing a CSV will apply the updated rules.
+
+================================================================================
+3. API LAYER
+================================================================================
+
+File: api/main.py
+Framework: FastAPI
+
+All endpoints use parameterized SQLite queries directly (no ORM).
+The database path defaults to db/grade_data.db.
+
+--------------------------------------------------------------------------------
+3a. Endpoint Reference
+--------------------------------------------------------------------------------
+
+Requirement Management:
+
+  GET  /api/requirements?major={major}
+    Returns all Requirement_Groups with their courses for a major.
+    Response: [{groupId, groupName, type, sortOrder,
+                courses: [{id, code, name, sequenceTag}]}]
+
+  POST /api/requirement-groups
+    Body: {major, groupName, type, sortOrder}
+    Creates a new Requirement_Group. Returns: {groupId}
+
+  DELETE /api/requirement-groups/{group_id}
+    Deletes a group (cascades to Major_Requirements via separate delete).
+
+  POST /api/requirements
+    Body: {major, groupId, subject, courseNumber, sequenceTag?}
+    Adds a course to a group. Returns: {id}. 409 if duplicate.
+
+  DELETE /api/requirements/{req_id}
+    Removes a single requirement row.
+
+CSV Import:
+
+  POST /api/preview-csv
+    Multipart file upload. Returns first valid row for confirmation.
+
+  POST /api/upload-csv
+    Multipart file upload. Calls import_grade_csv(). Returns import stats.
+
+  POST /api/preview-degree-plan
+    Multipart file upload. Returns first valid row of a degree-plan CSV.
+
+  POST /api/upload-degree-plan?major={major}
+    Multipart file upload. Calls import_degree_plan_csv(). major must be
+    one of: CS, MATH, BA.
+
+Course Data:
+
+  GET /api/courses?subjects=&years=&search=&instructor=
+    Returns aggregated grade stats per (Subject, CourseNumber).
+    subjects: comma-separated list (e.g., "CS,MATH")
+    years: comma-separated AY codes (e.g., "AY22,AY23")
+    Response: [{code, name, avgGpa, gradeData:[{grade,count,percentage}]}]
+    Limited to 500 results.
+
+  GET /api/subjects
+    Returns list of all distinct Subject values in Course_Records.
+
+  GET /api/academic-years
+    Returns list of all academic years as "AY{YY}" strings (e.g., "AY22").
+    Academic year calculation: Fall YYYY → AY(YYYY+1); other terms → AY(YYYY).
+
+Instructor Analytics:
+
+  GET /api/course-instructors?code={code}&limit={n}
+    Returns top n instructors for a course ranked by avgGpa.
+    code format: "CS 313"
+    Response: [{instructor, avgGpa, gradeData}]
+
+  GET /api/bulk-best-instructors?codes={codes}
+    Comma-separated course codes. Returns best instructor per code.
+    Response: {code: {instructor, avgGpa, gradeData}}
+
+  GET /api/instructors?subject={subject}
+    Returns all distinct instructor names. subject is optional.
+
+--------------------------------------------------------------------------------
+3b. GPA Calculation
+--------------------------------------------------------------------------------
+
+  avgGpa = (Grade_A * 4.0 + Grade_B * 3.0 + Grade_C * 2.0) / total
+
+  where total = Grade_A + Grade_B + Grade_C + Grade_DNF
+
+  D and F grades are included in the denominator (as DNF) but contribute 0
+  to the numerator, which is consistent with UO's GPA policy where D/F grades
+  are awarded 0-1 quality points.
+
+================================================================================
+4. FRONTEND LAYER
+================================================================================
+
+Framework: Next.js (App Router), TypeScript, Tailwind CSS v4
+
+--------------------------------------------------------------------------------
+4a. Page Structure
+--------------------------------------------------------------------------------
+
+  app/page.tsx            Student degree planner (main dashboard)
+  app/admin/page.tsx      Admin portal
+  app/saved-plans/page.tsx  Saved degree plans viewer
+
+  app/layout.tsx          Root layout (header, navigation)
+
+--------------------------------------------------------------------------------
+4b. Key Components
+--------------------------------------------------------------------------------
+
+  app/components/filter-sidebar.tsx
+    Left sidebar. Controls: Major radio buttons, Year checkboxes,
+    Course search input, Instructor filter.
+    All state is lifted to page.tsx via callback props.
+
+  app/components/course-card.tsx
+    Card for one course. Shows: grade distribution bar chart (Recharts),
+    course code, avg GPA, title, instructor rows.
+    Props include onAddToPlan, onSwapInPlan, planItems, isRequired.
+    Instructor button states: Add / Swap / Added (non-interactive).
+
+  app/components/requirements-checklist.tsx
+    Panel above the course list. Shows requirement groups with green/grey
+    badges per course, plan summary (course list + avg GPA), action buttons
+    (Generate Plan, Save Plan, Clear).
+
+  app/components/csv-upload-zone.tsx
+    Drag-and-drop CSV upload for grade data. Preview/confirm flow.
+
+  app/components/degree-plan-upload-zone.tsx
+    Drag-and-drop CSV upload for degree plans. Preview/confirm flow.
+    Props: major, majorLabel, onImportComplete.
+
+--------------------------------------------------------------------------------
+4c. Client-Side State (app/page.tsx)
+--------------------------------------------------------------------------------
+
+  selectedSubject   string        Active major key ("CS", "MATH", "BA")
+  selectedYears     string[]      Active AY filter (["AY22", "AY23"])
+  searchQuery       string        Course search text
+  selectedInstructor string|null  Instructor filter
+  courses           Course[]      Fetched from /api/courses
+  requirementGroups RequirementGroup[]  Fetched from /api/requirements
+  planItems         PlanItem[]    Current draft plan (localStorage-backed)
+  upgradeSuggestions UpgradeSuggestion[]  Better instructor suggestions
+
+--------------------------------------------------------------------------------
+4d. localStorage Keys
+--------------------------------------------------------------------------------
+
+  maxgpa-plan-draft-{subject}   Draft plan items for each major
+  maxgpa-saved-plans            Array of saved plans (JSON)
+
+  Functions in app/lib/saved-plans.ts:
+    getDraftItems(subject)        Read draft
+    addDraftItem(item, subject)   Add to draft, return updated list
+    removeDraftItem(...)          Remove from draft
+    clearDraft(subject)           Delete draft
+    savePlan(plan)                Append to saved plans
+    getSavedPlans()               Return all saved plans, sorted newest first
+    deletePlan(id)                Remove a saved plan by id
+
+--------------------------------------------------------------------------------
+4e. Requirement Logic (app/lib/requirements.ts)
+--------------------------------------------------------------------------------
+
+  isGroupMet(group, planCodes)
+    Returns true if the plan satisfies a group's type:
+    - "all": every course in the group is in planCodes
+    - "choose_from": at least one course is in planCodes
+    - "one_sequence": all courses for at least one SequenceTag are in planCodes
+
+  allGroupsMet(groups, planCodes)
+    Returns true when every group is met. Controls Save Plan button.
+
+  groupBySequence(courses)
+    Groups courses by SequenceTag. Used to render sequence options in the UI.
+
+================================================================================
+5. KEY DATA FLOWS
+================================================================================
+
+--------------------------------------------------------------------------------
+5a. Student Plans a Degree
+--------------------------------------------------------------------------------
+
+1. User selects major in FilterSidebar → setSelectedSubject("CS")
+2. page.tsx fetches /api/requirements?major=CS → setRequirementGroups(data)
+3. page.tsx derives reqSubjects from requirementGroups (adds MATH if required)
+4. User checks year checkboxes → setSelectedYears(["AY26"])
+5. page.tsx fetches /api/courses?subjects=CS,MATH&years=AY26 → setCourses(data)
+6. User expands a CourseCard → component fetches /api/course-instructors?code=CS+313
+7. User clicks "Add" → handleAddToPlan(item) → addDraftItem() → setPlanItems()
+8. planCodes derived from planItems; isGroupMet() re-evaluates; badges turn green
+9. When allGroupsMet() → canSave = true → Save Plan button enables
+10. User clicks Save Plan → modal → handleSave() → savePlan() → clearDraft()
+
+--------------------------------------------------------------------------------
+5b. Generate Optimal Plan
+--------------------------------------------------------------------------------
+
+1. User clicks "Generate Plan"
+2. Collect all course codes from requirementGroups
+3. Fetch /api/bulk-best-instructors?codes=CS210,CS211,...
+4. Per group type:
+   - "all": add every course with its best instructor
+   - "choose_from": pick the course with highest avgGpa
+   - "one_sequence": compute avg GPA per sequence tag, pick best full sequence
+5. Existing manual selections are preserved (not overwritten by Generate)
+6. clearDraft() → addDraftItem() for each selected item → setPlanItems()
+
+--------------------------------------------------------------------------------
+5c. Admin Imports Grade Data
+--------------------------------------------------------------------------------
+
+1. Admin drags CSV onto CsvUploadZone
+2. POST /api/preview-csv → preview_grade_csv() → returns first valid row
+3. Admin reviews preview, clicks "Confirm & Import"
+4. POST /api/upload-csv → import_grade_csv():
+   a. clean_and_aggregate_data() — drop redacted, sum grade variants
+   b. load_reconciliation() + apply_reconciliation() — normalize names
+   c. Delete existing rows for incoming terms
+   d. INSERT into Course_Records
+5. Response shows rows_inserted, new_terms, updated_terms
+
+================================================================================
+6. HOW TO EXTEND THE SYSTEM
+================================================================================
+
+Adding a new major:
+  1. Add the key to MAJORS in app/admin/page.tsx and app/page.tsx
+  2. Add the key to MAJOR_LABELS in app/page.tsx
+  3. Add the key to the allowed list in /api/upload-degree-plan (api/main.py)
+  4. Upload a degree-plan CSV via the Admin portal
+
+Adding a new API endpoint:
+  1. Add the route function to api/main.py
+  2. The function should use get_db(db_path) and close the connection in finally
+  3. Add a test to tests/api_tests/test_main.py
+
+Adding new reconciliation rules:
+  1. Edit data/meta/Reconciliation.csv — add CHANGE_FROM, TO rows
+  2. Re-import the grade-history CSV via the Admin portal
+  3. The new rules apply automatically
+
+Changing grade aggregation:
+  Edit clean_and_aggregate_data() in db/database.py.
+  The Grade_DNF bucket is the primary one to adjust for GPA purposes.
+
+================================================================================
+7. TESTING
+================================================================================
+
+Test suite locations:
+  tests/api_tests/    Pytest — FastAPI endpoint tests (test_main.py)
+  tests/db_tests/     Pytest — database function tests (db_test.py)
+  tests/app_tests/    Vitest — React component and utility tests
+
+Running tests:
+  make test-fe        Vitest (frontend)
+  make test-be        Pytest api_tests
+  make test-db        Pytest db_tests
+
+Notable patterns:
+  - db_tests use a tmp_db pytest fixture with monkeypatch.setattr(db_module, "DB_FILE", ...)
+    to redirect all DB operations to a temporary SQLite file. Database functions
+    use db_path=None defaults and resolve DB_FILE at call time (not at definition
+    time) to make monkeypatching work correctly.
+  - api_tests spin up a test database and call FastAPI handler functions directly
+    (no HTTP server required).
+  - app_tests use Vitest with jsdom and React Testing Library.
+
+================================================================================

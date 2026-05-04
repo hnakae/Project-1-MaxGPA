@@ -1,0 +1,177 @@
+================================================================================
+MaxGPA — Installation Instructions
+CIS 422/522 Software Methodologies — Project 1
+Group 7
+Authors: Keagan Koski, Hiro Nakae, Peyton Phillips, Robert Mimms
+Created: Spring 2026
+Last Modified: 2026-05-04
+================================================================================
+
+--------------------------------------------------------------------------------
+SYSTEM REQUIREMENTS
+--------------------------------------------------------------------------------
+
+  - Operating System: macOS, Linux, or Windows (WSL recommended on Windows)
+  - Node.js: v22 or later      (https://nodejs.org)
+  - Python: 3.14 or later      (https://python.org)
+  - pip: included with Python
+  - Git: any recent version    (https://git-scm.com)
+  - Terminal / command-line access
+
+--------------------------------------------------------------------------------
+STEP 1 — CLONE THE REPOSITORY
+--------------------------------------------------------------------------------
+
+  git clone https://github.com/hnakae/Project-1-MaxGPA.git
+  cd Project-1-MaxGPA
+
+  If you received a .zip file instead:
+
+  unzip <GroupName>.zip
+  cd Project-1-MaxGPA
+
+--------------------------------------------------------------------------------
+STEP 2 — INSTALL DEPENDENCIES
+--------------------------------------------------------------------------------
+
+  Run the following from the project root:
+
+  make install
+
+  This is equivalent to:
+
+  npm install                                       (frontend packages)
+  pip install -r api/requirements.txt              (backend packages)
+
+  If you do not have `make`, run both commands above separately.
+
+  NOTE: It is recommended to use a Python virtual environment:
+
+  python3 -m venv api/venv
+  source api/venv/bin/activate          # macOS/Linux
+  # api\venv\Scripts\activate           # Windows
+  pip install -r api/requirements.txt
+
+--------------------------------------------------------------------------------
+STEP 3 — VERIFY THE DATABASE
+--------------------------------------------------------------------------------
+
+  The pre-loaded database file (db/grade_data.db) is included in the
+  repository. No action is needed to use it.
+
+  To re-initialize the database from raw CSV source files:
+
+  make db-init
+
+  This reads all CSV files from data/raw/ (grade history) and
+  data/meta/major_requirements/ (degree plans) and writes them into
+  db/grade_data.db. The reconciliation rules in data/meta/Reconciliation.csv
+  are applied automatically during grade-history import.
+
+  WARNING: db-init will overwrite the existing database.
+
+--------------------------------------------------------------------------------
+STEP 4 — START THE BACKEND
+--------------------------------------------------------------------------------
+
+  In a terminal, from the project root:
+
+  make dev-be
+
+  This runs:  fastapi dev api/main.py
+
+  The API will be available at:  http://localhost:8000
+  Interactive docs:              http://localhost:8000/docs
+
+  Leave this terminal open while using the app.
+
+  If you used a virtual environment in Step 2, activate it first:
+
+  source api/venv/bin/activate
+  make dev-be
+
+--------------------------------------------------------------------------------
+STEP 5 — START THE FRONTEND
+--------------------------------------------------------------------------------
+
+  Open a second terminal, from the project root:
+
+  make dev-fe
+
+  This runs:  npm run dev
+
+  The app will be available at:  http://localhost:3000
+
+  Open http://localhost:3000 in a browser. The app is ready.
+
+--------------------------------------------------------------------------------
+STEP 6 — VERIFY THE INSTALLATION
+--------------------------------------------------------------------------------
+
+  1. Navigate to http://localhost:3000
+  2. Select "Computer Science" in the major filter (left sidebar)
+  3. Check the "AY26" year checkbox
+  4. Courses with grade distributions should appear in the main area
+  5. Expanding a course card shows instructor rows with GPA values
+  6. Navigate to http://localhost:3000/admin to verify the Admin portal loads
+
+  If courses do not appear, verify:
+  - The backend (Step 4) is running and not showing errors
+  - The database file (db/grade_data.db) exists and is not empty:
+      sqlite3 db/grade_data.db "SELECT COUNT(*) FROM Course_Records;"
+
+--------------------------------------------------------------------------------
+RUNNING TESTS
+--------------------------------------------------------------------------------
+
+  Frontend unit tests (Vitest):
+
+  make test-fe
+
+  Backend API tests (Pytest):
+
+  make test-be
+
+  Database tests (Pytest):
+
+  make test-db
+
+--------------------------------------------------------------------------------
+LOADING DATA VIA THE ADMIN PORTAL (optional)
+--------------------------------------------------------------------------------
+
+  Grade History:
+    1. Go to http://localhost:3000/admin
+    2. Under "Import Grade Data", drag and drop a grade-history CSV
+    3. Review the preview (first valid row is shown)
+    4. Click "Confirm & Import"
+
+  Degree Requirements:
+    1. Go to http://localhost:3000/admin
+    2. Under "Degree Requirements", select a major tab (CS / Mathematics / Business)
+    3. Under "{Major} Requirements", upload a degree-plan CSV
+    4. Required CSV columns: GROUP, GROUP_TYPE, SUBJ, NUMB
+    5. Optional columns: SEQ, TITLE
+    6. Click "Confirm & Import"
+
+  See data/dummy_data/ for example CSV files that match the expected formats.
+
+--------------------------------------------------------------------------------
+TROUBLESHOOTING
+--------------------------------------------------------------------------------
+
+  "Cannot connect to API" / courses not loading:
+    - Ensure the backend is running on port 8000 (Step 4)
+    - Check the terminal running `make dev-be` for error messages
+
+  "Module not found" (frontend):
+    - Run `npm install` again from the project root
+
+  "ModuleNotFoundError" (backend):
+    - Activate the virtual environment and run `pip install -r api/requirements.txt`
+
+  Port already in use:
+    - Kill any existing process on port 3000 or 8000
+    - macOS/Linux: `lsof -ti:3000 | xargs kill`
+
+================================================================================

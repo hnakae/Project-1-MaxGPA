@@ -122,7 +122,7 @@ export function CourseCard({
             {instructors.length > 0 && (
               <div className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
                 <Users className="w-2.5 h-2.5" />
-                <span className="truncate max-w-[120px]">{instructors.join(", ")}</span>
+                <span className="truncate max-w-30">{instructors.join(", ")}</span>
               </div>
             )}
           </div>

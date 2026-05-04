@@ -1,141 +1,155 @@
-# Project-1-MaxGPA
+================================================================================
+MaxGPA — Degree Planner
+CIS 422/522 Software Methodologies — Project 1
+Group 7
+Authors: Keagan Koski, Hiro Nakae, Peyton Phillips, Robert Mimms
+Created: Spring 2026
+Last Modified: 2026-05-04
+================================================================================
 
-## Team 7: Hiro Robert Peyton Keagan
-## Peyton was here
+--------------------------------------------------------------------------------
+1. DESCRIPTION
+--------------------------------------------------------------------------------
 
-github: <https://github.com/hnakae/Project-1-MaxGPA>
+MaxGPA is a web application that helps University of Oregon students plan their
+degree by identifying which course sections and instructors offer the highest
+grade distributions. Students select a major (Computer Science, Mathematics, or
+Business Administration), choose a span of academic years, and browse every
+required course with its historical grade breakdown (A / B / C / DNF) and a
+ranked list of instructors. Students can manually add courses to a plan, or let
+the system auto-generate an optimal plan. Completed plans can be saved and
+exported to PDF.
 
-SDS document: <https://docs.google.com/document/d/1NLye7ptwLU-Bzha-F7nVhyjYpdZsUW3X5xVEV1s8BvQ/edit?tab=t.0>
+An Admin portal allows staff to upload grade-history CSVs, bulk-import degree
+requirement plans via CSV, and manually edit requirement groups.
 
-## Version Control Protocol
+--------------------------------------------------------------------------------
+2. AUTHORS (alphabetical by last name)
+--------------------------------------------------------------------------------
 
-1. npm run build (app)
-2. npx vitest (app/api/db) - optional for now
-3. Remember to git pull before pushing!
-4. notify the team in group text whenever you push
-    - before and after.
-5. Don't put your name in git commit message (redundant)
+  [Keagan Last Name]
+  Hiro Nakae
+  [Peyton Last Name]
+  [Robert Last Name]
 
-- Here's the convention i'm using right now:
-    feat(app): feature description,
-    feat(api): description,
-    setup(db): description,
-    feat(tests): description,
-    chore(config): description
+--------------------------------------------------------------------------------
+3. CREATED
+--------------------------------------------------------------------------------
 
-## Getting Started
+  Spring 2026 — CIS 422/522 Software Methodologies, University of Oregon
+  Project 1: MaxGPA Degree Planner
 
-```bash
-cd project-1-maxgpa
-npm install
-npm run dev 
-```
+--------------------------------------------------------------------------------
+4. HOW TO RUN
+--------------------------------------------------------------------------------
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Prerequisites:
+  - Node.js v22+
+  - Python 3.14+
+  - pip (comes with Python)
 
-## Description
+Step 1 — Install all dependencies:
 
-This is going to be a web app that is going to help students at a university pick the required classes that they need for their selected major.
+  make install
 
-The distribution of grades awarded across all required classes in a major, as a predictor of GPA upon completion of a major.
+  This runs `npm install` (frontend) and `pip install -r api/requirements.txt`
+  (backend). Run from the project root.
 
-The instructors that give the highest grades for all required classes in a major, shown in a sequence that permits students to plan, in advance, instructors to seek or avoid.
+Step 2 — Initialize the database:
 
----
+  make db-init
 
-## architecture
+  Reads all CSV files from data/raw/ and degree plan data from data/meta/ and
+  loads them into db/grade_data.db. The database file is included in the
+  repository with pre-loaded data, so this step is only needed if you want to
+  reset or reload from source CSVs.
 
-- frontend:
-    - nextjs ([js] framework) + tailwind (css library)
-- backend:
-    - api ([python] data science stuff + api endpoint for nextjs client)
-    - db (mongo? [sqlite3] local postgres?)
-- deployment:
-    - [docker] (will need to do at the end before submission.)
+Step 3 — Start the backend API:
 
-## ---^---"Hiro"---^---
+  make dev-be
 
-## ---v---"Robert"---v---
+  Starts FastAPI at http://localhost:8000 (uses `fastapi dev api/main.py`).
+  Keep this terminal open.
 
-Python seems best for backend
-Not sure best for frontend, Python or JS?
-Database SQLite3 (open to options here, by no means a demand)
+Step 4 — Start the frontend (in a separate terminal):
 
-Docker Container with requirements
+  make dev-fe
 
-Python backend:
-	Setup database - each specific course, across instructor across years
-	Define SQL Queries
-Import CSV Data
-	Strip +, - from grades
-	Populate database with sanitized data
-	Accept queries from frontend and return data
-	
-<Language> Frontend:
-desktop app?
-I’m hesitant to make a web app, it seems like added complexity for little reason
-Dropdowns for menu options?
-Generate Report button
-Pipeline between numpy/matplotlib and frontend 
-Main Graph Area(?)
-Do we need anything else?
-Option to export the graph as a PDF or something?
-	
-Documentation for everything and justification for additional libraries. I don’t think we’ll need anything fancy for backend, frontend may be a different story, but I’m not super well versed in frontend stuff.
+  Starts Next.js at http://localhost:3000. Open this URL in a browser.
 
-Numpy + pandas for backend math
+  The app is now running. Navigate to http://localhost:3000 to use it.
 
-Database tables
-Query syntax
-How we visualize everything
+To run all tests:
 
-Hiro: Frontend?
-Robert: Database
-Peyton: Visualization
-Kaegan: Documentation/Frontend?
+  make test-fe        # Frontend (Vitest)
+  make test-be        # Backend API (Pytest)
+  make test-db        # Database (Pytest)
 
+--------------------------------------------------------------------------------
+5. ADDITIONAL SETUP
+--------------------------------------------------------------------------------
 
-Do we need 
+  - No login is required. The app is open to all users.
+  - The Admin portal is accessible at http://localhost:3000/admin
+  - Grade-history CSVs should be placed in data/raw/ before running db-init.
+  - Degree plan CSVs (one per major) can be uploaded via the Admin portal or
+    placed in data/meta/major_requirements/ before running db-init.
+  - The reconciliation file is at data/meta/Reconciliation.csv. Edit this file
+    to add course-number or title normalization rules before re-importing data.
 
-Project Plan
-Management
-Peyton -> weekly reports, data visualization
-Robert -> database
-Kaegan -> data naturalization and sorting
-Hiro -> Frontend
+--------------------------------------------------------------------------------
+6. SOFTWARE DEPENDENCIES
+--------------------------------------------------------------------------------
 
-At time of writing, a ‘manager’ doesn’t seem needed. People are willing to fill in the role if it becomes necessary though.
-People will work mainly in their specifications described above. However, if a part of the project falls behind, others will work with the person in their area to complete the part. 
-In terms of team decisions, we can make them at weekly meetings that are hosted for a minimum of 1 hour. Outside of the meetings, we have each other's numbers.
-Reporting will be done by Peyton, with a ~1 page summary of what happened each week. 
+Frontend:
+  - Node.js v22
+  - Next.js (see package.json for exact version)
+  - React, Tailwind CSS, Recharts, Radix UI, jsPDF, html-to-image, Lucide React
+  - Vitest (testing)
 
-Build plan
-—
-// insert a spreadsheet or smth here for it (visual showcase of the plan) 
-// discuss w kaegan
+Backend:
+  - Python 3.14
+  - fastapi[standard]
+  - pandas
+  - pytest
 
-SRS
-Problem statement:
-	Students at the University of Oregon have a plethora of options when it comes to traversing a major. Different course schedules may land the same student a degree, but with varying outcomes relating to GPA and term workloads. The goal of our project is to provide a simple and effective tool that generates optimal paths to getting a degree. These paths will be generated taking into account the grade distributions of specific teachers, as well as specific classes. 
-Users
-Depending on your user class, you will be presented with different views and capabilities upon login. 
-	Student:
-University of Oregon students will login via a student login portal. Each student will have the ability to generate plans for a list of predefined majors, as well as save the plan for future reference.
+Database:
+  - SQLite3 (standard library — no installation required)
 
-Admin:
-	Admin users should be able to upload new data for classes and majors. They should also have the ability to change major requirements. 
-Use cases
-// three specific, different, realistic scenarios
-Requirements
-// 20 needed, 6 non-functional
-// from this, 2 more subcategories needed; absolutely required and not
-SDS
-Description
-// externally visible behavior as precisely as possible
-Design
-// how all parts fit together + what parts are
-// include system structure here clearly (maybe a diagram)
-Major subsystems
-// each major subsystem explained using static and dynamic models.
-// all diagrams need to be clear and understandable
-// design rationale for individual subsystems here
+--------------------------------------------------------------------------------
+7. DIRECTORY STRUCTURE
+--------------------------------------------------------------------------------
+
+  /app                  Next.js App Router pages and components
+    /admin              Admin portal page (upload CSVs, manage requirements)
+    /components         Shared React components (CourseCard, FilterSidebar, etc.)
+    /lib                Client-side utilities (saved-plans, requirements logic)
+    /saved-plans        Saved degree plans page (view, export PDF)
+
+  /api                  FastAPI backend
+    main.py             All API endpoints
+    requirements.txt    Python package dependencies
+
+  /db                   Database layer
+    database.py         All database functions (init, import, query)
+    grade_data.db       SQLite database file (pre-loaded)
+
+  /data
+    /raw                Grade-history CSV files from the university
+    /meta               Degree plan CSVs and Reconciliation.csv
+      /major_requirements   Per-major degree plan CSV files
+
+  /tests
+    /api_tests          Pytest tests for FastAPI endpoints
+    /app_tests          Vitest tests for React components and utilities
+    /db_tests           Pytest tests for database functions
+
+  /backup               Original files preserved before submission rewrites
+
+  Makefile              Shortcut commands (install, dev, test, db-init)
+  README.txt            This file
+  ARCHITECTURE.md       System architecture and UML diagrams
+  DOCUMENTATION.md      Developer session log and design decisions
+  Functional_Requirements.md  CIS 422 functional requirements (v3)
+
+================================================================================

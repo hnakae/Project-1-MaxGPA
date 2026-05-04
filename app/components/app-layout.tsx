@@ -125,7 +125,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <DropdownMenu.Content
                     align="end"
                     sideOffset={5}
-                    className="z-50 min-w-[240px] rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+                    className="z-50 min-w-60 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
                   >
                     <div className="border-b border-slate-200 px-3 py-2">
                       <p className="text-sm font-medium text-slate-900">{currentUser.name}</p>
