@@ -64,6 +64,8 @@ def clean_and_aggregate_data(df):
         'Grade_A', 'Grade_B', 'Grade_C', 'Grade_DNF',
         'Pass', 'NoPass', 'Other', 'Withdraw', 'TOT_NON_W',
     ]
+    if 'TITLE' in df.columns:
+        columns_to_keep.append('TITLE')
     return df[columns_to_keep]
 
 
@@ -151,24 +153,24 @@ def _load_grade_history(conn, data_dir=GRADE_DATA_DIR):
         df = pd.read_csv(csv_file, dtype=str)
         df.columns = df.columns.str.strip()
 
-        if 'TITLE' in df.columns:
+        cleaned_df = clean_and_aggregate_data(df)
+
+        if 'TITLE' in cleaned_df.columns:
             titles = (
-                df[['SUBJ', 'NUMB', 'TITLE']]
+                cleaned_df[['Subject', 'CourseNumber', 'TITLE']]
                 .dropna(subset=['TITLE'])
-                .drop_duplicates(subset=['SUBJ', 'NUMB'])
+                .drop_duplicates(subset=['Subject', 'CourseNumber'])
             )
             titles = titles[titles['TITLE'].str.strip() != '']
             conn.cursor().executemany(
                 'INSERT OR REPLACE INTO Course_Titles (Subject, CourseNumber, Title) VALUES (?, ?, ?)',
-                [(r['SUBJ'].strip(), r['NUMB'].strip(), r['TITLE'].strip()) for _, r in titles.iterrows()],
+                [(r['Subject'], r['CourseNumber'], r['TITLE'].strip()) for _, r in titles.iterrows()],
             )
             conn.commit()
             print(f"  Upserted {len(titles)} course titles from {os.path.basename(csv_file)}.")
 
-        cleaned_df = clean_and_aggregate_data(df)
-
         # Skip terms already loaded so re-running or appending a new CSV is safe
-        new_rows = cleaned_df[~cleaned_df['Term'].isin(existing_terms)]
+        new_rows = cleaned_df[~cleaned_df['Term'].isin(existing_terms)].drop(columns=['TITLE'], errors='ignore')
         if new_rows.empty:
             print(f"  No new terms in {os.path.basename(csv_file)} — skipping.")
             continue
@@ -295,6 +297,19 @@ def import_grade_csv(file_obj) -> dict:
 
     conn = sqlite3.connect(DB_FILE)
     try:
+        if 'TITLE' in cleaned.columns:
+            titles = (
+                cleaned[['Subject', 'CourseNumber', 'TITLE']]
+                .dropna(subset=['TITLE'])
+                .drop_duplicates(subset=['Subject', 'CourseNumber'])
+            )
+            titles = titles[titles['TITLE'].str.strip() != '']
+            conn.cursor().executemany(
+                'INSERT OR REPLACE INTO Course_Titles (Subject, CourseNumber, Title) VALUES (?, ?, ?)',
+                [(r['Subject'], r['CourseNumber'], r['TITLE'].strip()) for _, r in titles.iterrows()],
+            )
+            cleaned = cleaned.drop(columns=['TITLE'])
+
         existing_terms = set(
             pd.read_sql('SELECT DISTINCT Term FROM Course_Records', conn)['Term'].tolist()
         )
