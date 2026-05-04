@@ -117,7 +117,7 @@ class TestAPI:
             """)
 
             self.conn.execute("""
-                INSERT OR REPLACE INTO CourseTitles
+                INSERT OR REPLACE INTO Course_Titles
                 (Subject, CourseNumber, Title)
                 VALUES
                 ('TEST_PEYTON', '101', 'Peyton Test Course One'),
@@ -135,7 +135,7 @@ class TestAPI:
             """)
 
             self.conn.execute("""
-                DELETE FROM CourseTitles
+                DELETE FROM Course_Titles
                 WHERE Subject IN ('TEST_PEYTON', 'FAKE_PEYTON')
             """)
 

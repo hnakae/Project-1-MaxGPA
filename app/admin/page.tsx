@@ -259,8 +259,9 @@ export default function AdminPage() {
                               {c.sequenceTag}
                             </span>
                           )}
-                          <span className="w-20 shrink-0 text-sm font-medium text-slate-900">{c.code}</span>
-                          <span className="flex-1 text-sm text-slate-500 truncate">{c.name ?? "—"}</span>
+                          <span className="flex-1 text-sm font-medium text-slate-900 truncate">
+                            {c.code}{c.name ? ` — ${c.name}` : ""}
+                          </span>
                           <button
                             onClick={() => handleRemoveCourse(group.groupId, c.id)}
                             className="shrink-0 text-xs font-medium text-rose-500 hover:text-rose-700 transition-colors"

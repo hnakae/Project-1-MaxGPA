@@ -63,7 +63,7 @@ async def get_requirements(major: str, db_path=DB_PATH):
             SELECT r.ReqID, r.Subject || ' ' || r.CourseNumber AS code,
                    ct.Title, r.SequenceTag
             FROM Major_Requirements r
-            LEFT JOIN CourseTitles ct
+            LEFT JOIN Course_Titles ct
                    ON ct.Subject = r.Subject AND ct.CourseNumber = r.CourseNumber
             WHERE r.GroupID = ?
             ORDER BY r.SequenceTag, r.Subject, r.CourseNumber
@@ -333,7 +333,7 @@ async def get_courses(
             SUM(cr.Grade_DNF) AS dnf,
             SUM(cr.TOT_NON_W) AS total
         FROM Course_Records cr
-        LEFT JOIN CourseTitles ct ON ct.Subject = cr.Subject AND ct.CourseNumber = cr.CourseNumber
+        LEFT JOIN Course_Titles ct ON ct.Subject = cr.Subject AND ct.CourseNumber = cr.CourseNumber
         {where}
         GROUP BY cr.Subject, cr.CourseNumber
         ORDER BY cr.Subject, cr.CourseNumber
