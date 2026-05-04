@@ -169,8 +169,8 @@ export default function AdminPage() {
   return (
     <div className="mx-auto max-w-5xl p-6 md:p-8">
       <div className="mb-8">
-        <h1 className="text-slate-900 mb-2">Admin Portal</h1>
-        <p className="text-slate-600">Manage grade data and major requirements</p>
+        <h1 className="text-slate-900 mb-2">Admin</h1>
+        <p className="text-slate-600">Import grade data and configure degree requirements by major</p>
       </div>
 
       {/* CSV import */}
@@ -182,43 +182,11 @@ export default function AdminPage() {
         <CsvUploadZone />
       </section>
 
-      {/* Degree plan import */}
-      <section className="mb-12">
-        <h2 className="text-slate-900 mb-1">Import Degree Plan</h2>
-        <p className="mb-4 text-sm text-slate-600">
-          Upload a degree-plan CSV for one major. Required columns: <code className="bg-slate-100 px-1 rounded text-xs">GROUP, GROUP_TYPE, SUBJ, NUMB</code>. Optional: <code className="bg-slate-100 px-1 rounded text-xs">SEQ, TITLE</code>.
-        </p>
-
-        {/* Major tabs */}
-        <div className="mb-4 flex gap-2">
-          {MAJORS.map((m) => (
-            <button
-              key={m.key}
-              onClick={() => setSelectedMajor(m.key)}
-              className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
-                selectedMajor === m.key
-                  ? "bg-forest-900 text-white"
-                  : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-
-        <DegreePlanUploadZone
-          key={selectedMajor}
-          major={selectedMajor}
-          majorLabel={MAJORS.find((m) => m.key === selectedMajor)?.label ?? selectedMajor}
-          onImportComplete={() => setRefreshKey((k) => k + 1)}
-        />
-      </section>
-
-      {/* Degree requirements */}
+      {/* Degree requirements — unified section */}
       <section>
         <h2 className="text-slate-900 mb-1">Degree Requirements</h2>
-        <p className="mb-6 text-sm text-slate-600">
-          Define requirement groups for each major. Students must satisfy all groups before saving a plan.
+        <p className="mb-4 text-sm text-slate-600">
+          Configure requirement groups for each major. Import via CSV to bulk-replace, or edit groups manually below.
         </p>
 
         {/* Major tabs */}
@@ -237,6 +205,25 @@ export default function AdminPage() {
             </button>
           ))}
         </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden mb-6">
+          <div className="px-5 py-4 border-b border-slate-100">
+            <p className="text-sm font-semibold text-slate-800">{majorLabel} Requirements</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Upload a CSV to replace all groups at once. Required columns: <code className="bg-slate-100 px-1 rounded">GROUP, GROUP_TYPE, SUBJ, NUMB</code>. Optional: <code className="bg-slate-100 px-1 rounded">SEQ, TITLE</code>.
+            </p>
+          </div>
+          <div className="p-5">
+            <DegreePlanUploadZone
+              key={selectedMajor}
+              major={selectedMajor}
+              majorLabel={majorLabel}
+              onImportComplete={() => setRefreshKey((k) => k + 1)}
+            />
+          </div>
+        </div>
+
+        <p className="text-sm font-semibold text-slate-700 mb-3">{majorLabel} Requirements</p>
 
         {loading && <p className="text-sm text-slate-500">Loading…</p>}
 

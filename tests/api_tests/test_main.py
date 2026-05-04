@@ -95,7 +95,8 @@ class TestAPI:
         )
         asyncio.run(api.upload_csv(test, self.PATH))
         cur = self.conn.execute("SELECT * FROM Course_Records WHERE Subject = ? AND CourseNumber = ?", ("CS", "606")).fetchall()
-        assert [dict(row) for row in cur] == [{'RecordID': 47102, 'Term': 201601, 'TermDesc': 'Fall 2016', 'Subject': 'CS', 'CourseNumber': '606', 'CRN': '10001', 'Instructor': 'TEST, TEST TEST', 'Grade_A': 202, 'Grade_B': 7, 'Grade_C': 1, 'Grade_DNF': 0, 'Pass': 1, 'NoPass': 0, 'Other': 0, 'Withdraw': 0, 'TOT_NON_W': 100}]
+        rows = [{k: v for k, v in dict(row).items() if k != 'RecordID'} for row in cur]
+        assert rows == [{'Term': 201601, 'TermDesc': 'Fall 2016', 'Subject': 'CS', 'CourseNumber': '606', 'CRN': '10001', 'Instructor': 'TEST, TEST TEST', 'Grade_A': 202, 'Grade_B': 7, 'Grade_C': 1, 'Grade_DNF': 0, 'Pass': 1, 'NoPass': 0, 'Other': 0, 'Withdraw': 0, 'TOT_NON_W': 100}]
     
     @pytest.fixture
     def fake_peyton_course_data(self):

@@ -9,6 +9,7 @@ import glob
 DB_FILE = 'db/grade_data.db'
 GRADE_DATA_DIR = 'data/raw/'          # drop grade CSVs here; all *.csv files are ingested
 MAJOR_REQUIREMENTS_DIR = 'data/meta/major_requirements/'
+RECONCILIATION_FILE = 'data/meta/Reconciliation.csv'
 
 # Maps degree-plan CSV filename stems to the short major key used throughout the DB and API.
 # Update this when adding new degree programs.
@@ -23,6 +24,52 @@ GRADE_COLS = [
     'AP', 'A', 'AM', 'BP', 'B', 'BM', 'CP', 'C', 'CM',
     'DP', 'D', 'DM', 'F', 'P', 'N', 'OTHER', 'W',
 ]
+
+
+def load_reconciliation(path=None):
+    """
+    Read Reconciliation.csv and return two mapping dicts:
+      title_map        — {old_title: new_title}
+      course_num_map   — {old_course_number: new_course_number}
+
+    Rows whose CHANGE_FROM value looks like a course number (no spaces, ≤8 chars)
+    go into course_num_map; everything else is treated as a title mapping.
+    """
+    title_map: dict[str, str] = {}
+    course_num_map: dict[str, str] = {}
+
+    if path is None:
+        path = RECONCILIATION_FILE
+    if not os.path.exists(path):
+        return title_map, course_num_map
+
+    df = pd.read_csv(path, dtype=str, keep_default_na=False)
+    df.columns = df.columns.str.strip()
+
+    for _, row in df.iterrows():
+        from_val = str(row.get('CHANGE_FROM', '')).strip()
+        to_val   = str(row.get('TO', '')).strip()
+        if not from_val or not to_val:
+            continue
+        if ' ' not in from_val and len(from_val) <= 8:
+            course_num_map[from_val] = to_val
+        else:
+            title_map[from_val] = to_val
+
+    return title_map, course_num_map
+
+
+def apply_reconciliation(df, title_map: dict, course_num_map: dict):
+    """Apply reconciliation mappings to a grade-history DataFrame in place."""
+    if course_num_map and 'CourseNumber' in df.columns:
+        df['CourseNumber'] = df['CourseNumber'].map(
+            lambda x: course_num_map.get(str(x).strip(), x)
+        )
+    if title_map and 'TITLE' in df.columns:
+        df['TITLE'] = df['TITLE'].map(
+            lambda x: title_map.get(str(x).strip(), x)
+        )
+    return df
 
 
 def clean_and_aggregate_data(df):
@@ -282,7 +329,7 @@ def initialize_database(data_dir=GRADE_DATA_DIR):
     print("Database initialization complete.")
 
 
-def import_grade_csv(file_obj, db_path=DB_FILE) -> dict:
+def import_grade_csv(file_obj, db_path=None) -> dict:
     """
     Import grade records from a CSV upload into Course_Records.
 
@@ -297,11 +344,15 @@ def import_grade_csv(file_obj, db_path=DB_FILE) -> dict:
             "updated_terms": list[int],
         }
     """
+    if db_path is None:
+        db_path = DB_FILE
     if isinstance(file_obj, bytes):
         file_obj = io.BytesIO(file_obj)
 
     df = pd.read_csv(file_obj, dtype=str)
     cleaned = clean_and_aggregate_data(df)
+    title_map, course_num_map = load_reconciliation()
+    apply_reconciliation(cleaned, title_map, course_num_map)
     conn = sqlite3.connect(db_path)
     try:
         if 'TITLE' in cleaned.columns:
@@ -426,7 +477,7 @@ def preview_degree_plan_csv(file_obj) -> dict:
     }
 
 
-def import_degree_plan_csv(file_obj, major_key: str, db_path=DB_FILE) -> dict:
+def import_degree_plan_csv(file_obj, major_key: str, db_path=None) -> dict:
     """
     Import a degree-plan CSV for one major, replacing all existing requirement
     groups and requirements for that major.
@@ -434,6 +485,8 @@ def import_degree_plan_csv(file_obj, major_key: str, db_path=DB_FILE) -> dict:
     Returns:
         {"major": str, "groups_created": int, "courses_inserted": int}
     """
+    if db_path is None:
+        db_path = DB_FILE
     if isinstance(file_obj, bytes):
         file_obj = io.BytesIO(file_obj)
 
