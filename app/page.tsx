@@ -47,7 +47,6 @@ export default function DashboardPage() {
   const [selectedInstructor, setSelectedInstructor] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("default");
   const [instructors, setInstructors] = useState<string[]>([]);
-  const [planGrades, setPlanGrades] = useState<number[]>([]);
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [requirementGroups, setRequirementGroups] = useState<RequirementGroup[]>([]);
@@ -63,17 +62,14 @@ export default function DashboardPage() {
   const [scrolledDown, setScrolledDown] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
 
+  const planGrades = planItems.map((x) => x.avgGpa);
+
   useEffect(() => {
-    const draft = getDraftItems(selectedSubject);
-    setPlanItems(draft);
-    setPlanGrades(draft.map((x) => x.avgGpa));
+    Promise.resolve(getDraftItems(selectedSubject)).then(setPlanItems);
   }, [selectedSubject]);
 
   useEffect(() => {
-    if (planItems.length === 0) {
-      setUpgradeSuggestions([]);
-      return;
-    }
+    if (planItems.length === 0) return;
     const codes = planItems.map((i) => i.code).join(",");
     fetch(`/api/bulk-best-instructors?codes=${encodeURIComponent(codes)}`)
       .then((r) => r.json())
@@ -104,28 +100,21 @@ export default function DashboardPage() {
   }, [selectedSubject]);
 
   const handleAddToPlan = (item: PlanItem) => {
-    const updated = addDraftItem(item, selectedSubject);
-    setPlanItems(updated);
-    setPlanGrades(updated.map(X => X["avgGpa"]));
+    setPlanItems(addDraftItem(item, selectedSubject));
   };
 
   const handleRemoveFromPlan = (code: string, instructor: string) => {
-    const updated = removeDraftItem(code, instructor, selectedSubject);
-    setPlanItems(updated);
-    setPlanGrades(updated.map(X => X["avgGpa"]));
+    setPlanItems(removeDraftItem(code, instructor, selectedSubject));
   };
 
   const handleClearPlan = () => {
     clearDraft(selectedSubject);
     setPlanItems([]);
-    setPlanGrades([]);
   };
 
   const handleSwap = (code: string, currentInstructor: string, betterItem: PlanItem) => {
     removeDraftItem(code, currentInstructor, selectedSubject);
-    const updated = addDraftItem(betterItem, selectedSubject);
-    setPlanItems(updated);
-    setPlanGrades(updated.map((x) => x.avgGpa));
+    setPlanItems(addDraftItem(betterItem, selectedSubject));
   };
 
   const handleSwapAll = () => {
@@ -135,7 +124,6 @@ export default function DashboardPage() {
       updated = addDraftItem(s.betterItem, selectedSubject);
     }
     setPlanItems(updated);
-    setPlanGrades(updated.map((x) => x.avgGpa));
   };
 
   const handleGeneratePlan = async () => {
@@ -240,7 +228,6 @@ export default function DashboardPage() {
       clearDraft(selectedSubject);
       newPlan.forEach(item => addDraftItem(item, selectedSubject));
       setPlanItems(newPlan);
-      setPlanGrades(newPlan.map(X => X["avgGpa"]));
     } catch (err) {
       console.error(err);
     } finally {
@@ -292,14 +279,8 @@ useEffect(() => {
   }, [selectedSubject]);
 
   useEffect(() => {
-    if (selectedYears.length === 0) {
-      setCourses([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+    if (selectedYears.length === 0) return;
 
-    // Collect all subjects needed: the selected major plus any subjects present in requirements
     const reqSubjects = new Set(
       requirementGroups.flatMap((g) => g.courses.map((c) => c.code.split(" ")[0]))
     );
@@ -314,30 +295,38 @@ useEffect(() => {
 
     const url = `/api/courses?${params.toString()}`;
 
-    if (courseCache.has(url)) {
-      setCourses(courseCache.get(url)!);
-      setLoading(false);
+    let cancelled = false;
+
+    const load = async () => {
+      if (courseCache.has(url)) {
+        setCourses(courseCache.get(url)!);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+
+      setLoading(true);
       setError(null);
-      return;
-    }
 
-    setLoading(true);
-    setError(null);
-
-    fetch(url)
-      .then((r) => {
+      try {
+        const r = await fetch(url);
         if (!r.ok) throw new Error(`API error ${r.status}`);
-        return r.json();
-      })
-      .then((data: Course[]) => {
-        courseCache.set(url, data);
-        setCourses(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message ?? "Failed to load courses");
-        setLoading(false);
-      });
+        const data: Course[] = await r.json();
+        if (!cancelled) {
+          courseCache.set(url, data);
+          setCourses(data);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError((err as Error).message ?? "Failed to load courses");
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
   }, [selectedSubject, selectedYears, searchQuery, selectedInstructor, requirementGroups]);
 
   useEffect(() => {
@@ -379,7 +368,7 @@ useEffect(() => {
     return 10000 + (c.code.charCodeAt(0) * 100) + (parseInt(c.code.split(" ")[1]) || 0);
   };
 
-  const filteredCourses = courses
+  const filteredCourses = (selectedYears.length === 0 ? [] : courses)
     .filter((c) => {
       const matchesDivision = c.code.startsWith(selectedSubject + " ") || requiredCodes.has(c.code);
       return matchesDivision;
@@ -545,7 +534,7 @@ useEffect(() => {
                   <p className="text-sm text-slate-400">Add courses to your plan, then save.</p>
                 )}
 
-                {upgradeSuggestions.length > 0 && (
+                {planItems.length > 0 && upgradeSuggestions.length > 0 && (
                   <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Better options available</p>

@@ -177,7 +177,7 @@ export default function AdminPage() {
         <p className="mb-4 text-sm text-slate-600">
           Upload CSV with columns: TERM, TERM_DESC, SUBJ, NUMB, TITLE (optional), CRN, INSTRUCTOR, and grade distribution columns
         </p>
-        <CsvUploadZone onUploadComplete={() => {}} />
+        <CsvUploadZone />
       </section>
 
       {/* Degree requirements */}

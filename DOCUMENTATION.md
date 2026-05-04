@@ -1,6 +1,7 @@
-## CSV Import via API — 2026-05-03
+# CSV Import via API — 2026-05-03
 
-### `db/database.py` — `import_grade_csv(file_obj)`
+## `db/database.py` — `import_grade_csv(file_obj)`
+
 New public function for runtime CSV ingestion from the API layer.
 
 - Accepts `bytes` (FastAPI `UploadFile.read()`) or any binary/text file-like object.
@@ -10,6 +11,7 @@ New public function for runtime CSV ingestion from the API layer.
 - Returns `{"rows_inserted": int, "new_terms": list[int], "updated_terms": list[int]}`.
 
 Intended usage in the API layer:
+
 ```python
 contents = await file.read()
 result = import_grade_csv(contents)
@@ -20,23 +22,28 @@ result = import_grade_csv(contents)
 ## Degree Requirements & Admin Portal — 2026-04-25
 
 ### Database
+
 `Major_Requirements` table recreated with clean schema: `ReqID`, `Major` (CS/MATH/BA), `Subject`, `CourseNumber`, `UNIQUE(Major, Subject, CourseNumber)`. The old schema (MajorID, Year, Term, Title columns) was dropped.
 
 ### API — 3 new endpoints
+
 - `GET /api/requirements?major=CS` — returns `{id, code, name}[]` via LEFT JOIN with CourseTitles
 - `POST /api/requirements` — body `{major, subject, courseNumber}`, returns `{id}`, 409 on duplicate
 - `DELETE /api/requirements/{id}` — removes a requirement
 
 ### Admin page (`app/admin/page.tsx`)
+
 Full rewrite. Major tab selector (CS / Math / BA). For the selected major: live requirement list with Remove buttons; Add footer with a dropdown of all courses for that subject (already-added ones filtered out) and an Add Requirement button. CSV import section retained.
 
 ### Student dashboard (`app/page.tsx`)
+
 - Fetches `requirements` for `selectedSubject` on major change
 - Requirements checklist panel shown above KPI cards when requirements exist: pill per requirement, green+checkmark when that course is in `planItems`, grey+circle otherwise
 - Save Plan button lives inside the checklist panel (when requirements exist) and is disabled until all requirements are met (`requirements.every(r => planItems.some(p => p.code === r.code))`)
 - Falls back to old Save Plan button (disabled when planItems empty) when no requirements are defined
 
 ### CourseCard (`app/components/course-card.tsx`)
+
 New `isRequired?: boolean` prop. When true, shows an indigo "Required" badge next to the course code. Dashboard passes `isRequired={requiredCodes.has(course.code)}`.
 
 ---
@@ -44,12 +51,15 @@ New `isRequired?: boolean` prop. When true, shows an indigo "Required" badge nex
 ## Course Titles — 2026-04-24
 
 ### CourseTitles table
+
 Added `CourseTitles` SQLite table (`Subject`, `CourseNumber`, `Title`) populated from the raw CSV's `TITLE` column (which was present but not imported during initial ingestion). 7,231 unique subject+course pairs loaded via `db/grade_data.db`.
 
 ### API change — `/api/courses`
+
 `/api/courses` now LEFT JOINs `CourseTitles` and returns a `name` field alongside `code`. Courses with no matching title return `null` for `name`.
 
 ### Frontend changes
+
 - `Course` interface in `app/page.tsx` gained optional `name?: string`
 - `name` prop is passed through to `CourseCard`, which already had a `name` prop and renders it as a subtitle line below the course code
 
@@ -58,27 +68,33 @@ Added `CourseTitles` SQLite table (`Subject`, `CourseNumber`, `Title`) populated
 ## Design System v2 — Implementation Notes (2026-04-24)
 
 ### Fonts
+
 Switched body font from Geist Sans to **Barlow**, headings to **Barlow Semi Condensed** (self-hosted TTFs in `public/fonts/`). Geist Mono is retained for tabular/numeric contexts. `@font-face` declarations live in `app/styles/fonts.css`. The font-sans and font-display CSS custom properties are wired into Tailwind v4 via `@theme inline` in `theme.css`.
 
 ### Typography
+
 Heading base styles in `@layer base` now use `--font-display-stack` (Barlow Semi Condensed) with:
+
 - h1/h2: semibold (600), line-height 1.25, letter-spacing −0.025em
 - h3/h4: medium (500), line-height 1.375
 
 ### Buttons
+
 All buttons use pill shape (`rounded-full`). Primary CTA buttons use `.btn-forest` (defined in `@layer components` in `theme.css`) which applies a subtle forest-green gradient with an inner top-highlight shadow instead of flat `bg-forest-900`.
 
 ### Color tokens
+
 Full emerald scale (100–700), named slate scale (50–900), grade semantic colors (`--grade-a/b/c/dnf`), rose and amber palette added to `:root` in `theme.css`. Grade/verdict color tokens exposed via `@theme inline` as `color-grade-*`.
 
 ### Assets
+
 Oregon Duck mascot (`/assets/oregon-duck.webp`) copied to `public/assets/`.
 
 ---
 
 should i use client-side (useEffect / Actions) or Server-Side (URL Params)?  
-                                                                              
-    ⏺ For this dashboard, the right split is both — not one or the other.          
+
+    ⏺ For this dashboard, the right split is both — not one or the other.
                                                                                 
     URL params for Major + Year (the API-triggering filters): these change what  
     data you fetch, they're discrete/bookmarkable, and the back button should    
@@ -101,41 +117,38 @@ should i use client-side (useEffect / Actions) or Server-Side (URL Params)?
     every filter change since the server renders the new data before the page
     arrives in the browser.    
 
+Here's a plain breakdown of each feature based on the actual project intent:
 
-
-
-Here's a plain breakdown of each feature based on the actual project intent:                
-                                               
-  ---                     
+  ---
   Filters (Major, Year, Instructor)
   The core of the app. A student selects their  
-  major, which scopes the data to only the    
-  courses required for that degree. Year lets   
+  major, which scopes the data to only the
+  courses required for that degree. Year lets
   them narrow to a specific time window — useful
-   because grade distributions shift as         
-  instructors change or courses get           
+   because grade distributions shift as
+  instructors change or courses get
   restructured. These two together answer "what
-  does this major actually look like,          
+  does this major actually look like,
   grade-wise, right now?" The instructor filter
-  is the sharpest tool: it lets a student find 
-  which specific section of a required course 
-  gives the best grades, so they can         
+  is the sharpest tool: it lets a student find
+  which specific section of a required course
+  gives the best grades, so they can
   intentionally schedule around that instructor.
-                                                
+
   View Mode (All Instructors / Specific Teacher)
-  Two different questions. "All Instructors"    
-  gives you the aggregate picture of a course — 
+  Two different questions. "All Instructors"
+  gives you the aggregate picture of a course —
   how hard is CS 313 overall? "Specific Teacher"
-   lets you drill into a single instructor's    
-  record — how hard is CS 313 with Dr. X      
+   lets you drill into a single instructor's
+  record — how hard is CS 313 with Dr. X
   specifically? The toggle is the switch between
    those two modes of analysis.
 
   Degree Plan
   The Major_Requirements table links majors to
-  the specific courses required for a degree.   
+  the specific courses required for a degree.
   The intent is that when a student picks
-  "Computer Science," the app doesn't just show 
+  "Computer Science," the app doesn't just show
   all CS-prefixed courses — it shows the exact
   required sequence for that degree. This is
   what makes the tool a planning tool rather
@@ -183,7 +196,7 @@ Here's a plain breakdown of each feature based on the actual project intent:
    must include. Saved plans and export are how you keep and share
    the result.
 
-[Sat May 2] 
+[Sat May 2]
 
 ## Changes Made (Session Log)
 
@@ -473,7 +486,7 @@ The course list was switched from a single-column vertical list to a **3-column 
 
 - **Grid Layout (`app/page.tsx`)**: The course container now uses `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`.
 - **Thumbnail Chart**: The Grade Distribution Chart is now fixed at the top of the card (height: 160px), acting as a visual "thumbnail". The chart itself was simplified (removed axis lines/labels) to look cleaner at smaller scales.
-- **Condensed Metadata**: Padding was reduced throughout. Course code, GPA, and name are now tightly packed below the chart. 
+- **Condensed Metadata**: Padding was reduced throughout. Course code, GPA, and name are now tightly packed below the chart.
 - **Smart Instructor List**: To maintain a consistent card height, only the top 2 instructors are shown by default, with an indicator (e.g., "+3 more") if others are available.
 
 **Tests — `tests/app_tests/course-card-swap.test.tsx`:**
@@ -485,6 +498,7 @@ The course list was switched from a single-column vertical list to a **3-column 
 To improve readability and prevent the student count label from overlapping with the chart bars (especially when "DNF" or "C" grades are high), the label was moved from the bottom right to the **top right** of the chart area.
 
 **Changes:**
+
 - Updated the label's positioning classes in `CourseCard`: changed `bottom-2` to `top-2`.
 - Added `z-10` to ensure the label stays above the chart elements.
 
@@ -495,12 +509,14 @@ To improve readability and prevent the student count label from overlapping with
 Added a 'sort-by' dropdown to the dashboard to allow students to organize courses within their requirement sections.
 
 **Features:**
+
 - **Default Sort**: Positioned at the top, this option sorts courses according to their order in the official major requirements.
 - **GPA Sorting**: Options for "GPA: High to Low" and "GPA: Low to High".
 - **Enrollment Sorting**: New options for "Students: High to Low" and "Students: Low to High", calculated from the total historical student count in the grade data.
 - **Section Integrity**: Sorting is applied independently within each course section (Lower-Division, Upper-Division, and Other), ensuring that requirements remain properly segregated.
 
 **Implementation Details:**
+
 - A new `sortOrder` state in `app/page.tsx` controls the sorting behavior.
 - `sortFn` was added to handle the different sorting criteria, including a new helper `getStudentCount` that aggregates counts from `gradeData`.
 - The dropdown is styled to match the dashboard's design system and is hidden during printing/exporting.
@@ -515,6 +531,3 @@ Added a 'sort-by' dropdown to the dashboard to allow students to organize course
 | `sorts by GPA descending` | Verifies that courses with higher average GPAs appear first when selected. |
 | `sorts by student count descending` | Verifies that more popular courses (by total enrollment) appear first. |
 | `sorts by student count ascending` | Verifies that smaller courses appear first. |
-
-
-

@@ -123,6 +123,20 @@ async def add_requirement(body: RequirementIn, db_path=DB_PATH):
     conn.close()
     return {"id": req_id}
 
+@app.post("/api/preview-csv")
+async def preview_csv(file: UploadFile = File(...)):
+    try:
+        contents = await file.read()
+        result = database.preview_grade_csv(contents)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not parse CSV: {str(e)}")
+    finally:
+        await file.close()
+    return result
+
+
 @app.post("/api/upload-csv")
 async def upload_csv(file: UploadFile = File(...), db_path=DB_PATH):
     try:

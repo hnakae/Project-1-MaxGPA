@@ -344,6 +344,48 @@ def import_grade_csv(file_obj, db_path=DB_FILE) -> dict:
     }
 
 
+def preview_grade_csv(file_obj) -> dict:
+    """
+    Read a grade CSV and return the column headings plus the first non-redacted
+    data row, without writing anything to the database.
+
+    A row is considered redacted when any grade column contains '*'.
+    Returns:
+        {
+            "columns": list[str],          # all column headings from row 1
+            "first_valid_row": dict,       # field → value for the first valid row
+        }
+    Raises ValueError if no valid row is found.
+    """
+    if isinstance(file_obj, bytes):
+        file_obj = io.BytesIO(file_obj)
+
+    df = pd.read_csv(file_obj, dtype=str, nrows=2000)
+    df.columns = df.columns.str.strip()
+
+    existing_grade_cols = [c for c in GRADE_COLS if c in df.columns]
+    if existing_grade_cols:
+        redacted = df[existing_grade_cols].isin(['*']).any(axis=1)
+        valid = df[~redacted]
+    else:
+        valid = df
+
+    if valid.empty:
+        raise ValueError("No non-redacted rows found in the first 2000 rows of this file.")
+
+    first_row = valid.iloc[0]
+    fields = {
+        col: str(first_row[col]).strip()
+        for col in df.columns
+        if pd.notna(first_row[col]) and str(first_row[col]).strip() not in ('', 'nan')
+    }
+
+    return {
+        "columns": list(df.columns),
+        "first_valid_row": fields,
+    }
+
+
 if __name__ == '__main__':
     import sys
     initialize_database(sys.argv[1] if len(sys.argv) > 1 else GRADE_DATA_DIR)
