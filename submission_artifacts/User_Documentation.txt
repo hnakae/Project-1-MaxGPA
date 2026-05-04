@@ -1,0 +1,338 @@
+================================================================================
+MaxGPA — User Documentation
+CIS 422/522 Software Methodologies — Project 1
+Group 7
+Authors: Keagan Koski, Hiro Nakae, Peyton Phillips, Robert Mimms
+Created: Spring 2026
+Last Modified: 2026-05-04
+================================================================================
+
+--------------------------------------------------------------------------------
+INTRODUCTION
+--------------------------------------------------------------------------------
+
+MaxGPA is a web application for University of Oregon students who want to plan
+their degree strategically. It shows the historical grade distributions for
+every required course in a major — broken down by instructor — so students can
+identify which sections offer the best outcomes and build a realistic course
+plan before registration opens.
+
+The system also includes an Admin portal for staff to load and update grade
+data and degree requirement information.
+
+--------------------------------------------------------------------------------
+INTERFACE OVERVIEW
+--------------------------------------------------------------------------------
+
+The app has three main pages, accessible from the navigation bar at the top:
+
+  Degree Planner     The main planning workspace (default page)
+  My Degree Plan     View and export plans you have saved
+  Admin              Staff portal for uploading data
+
+On the Degree Planner page, the screen is divided into three regions:
+
+  LEFT SIDEBAR
+    Contains four filters: Major, Year, Course Search, and Instructor.
+    Changes here immediately update the courses shown in the main area.
+
+  TOP PANEL (Requirements Checklist)
+    Appears after you select a major. Shows every required course group
+    with badges that turn green as you add courses to your plan. Your
+    current plan (course list, avg GPA, action buttons) sits on the right
+    side of this panel.
+
+  MAIN AREA (Course Cards)
+    One card per course. Each card shows a grade distribution chart and,
+    when expanded, a ranked list of instructors with their average GPAs.
+
+--------------------------------------------------------------------------------
+STUDENT TASKS
+--------------------------------------------------------------------------------
+
+TASK 1: Select your major and see which courses are required
+------------------------------------------------------------
+
+Goal: Scope the planner to your degree program so you can see exactly which
+courses you need.
+
+  1. In the left sidebar, find the "Major" section.
+  2. Click the radio button next to your major:
+       Computer Science / Mathematics / Business Administration
+  3. The Requirements Checklist panel appears at the top of the main area.
+     It lists every required course group for that major with grey badges
+     for each course — these will turn green as you add courses to your plan.
+
+If no Requirements Checklist appears, the degree plan for your major has not
+been loaded. Contact your system administrator.
+
+
+TASK 2: Choose which years of grade data to include
+----------------------------------------------------
+
+Goal: Narrow the data to a specific time window — useful if you want to see
+only recent instructors or compare trends across years.
+
+  1. In the left sidebar, find the "Year" section.
+  2. Check one or more academic year boxes (e.g., AY24, AY25, AY26).
+     AY26 = the academic year running Fall 2025 through Summer 2026.
+  3. Course cards in the main area update immediately to reflect only
+     sections taught during the selected years.
+
+  NOTE: At least one year must be selected for courses to appear.
+  If the main area is empty, check that you have at least one year selected.
+
+  TIP: Selecting more years gives a broader picture of each instructor's
+  history. Selecting fewer years shows only recent data.
+
+
+TASK 3: Find the best instructor for a required course
+------------------------------------------------------
+
+Goal: Identify which instructor section of a required course has historically
+given the highest grades, so you can prioritize registering for that section.
+
+  1. In the main area, find the course card for the course you are
+     researching (e.g., "CS 313 — Interm Data Structures").
+     Required courses appear at the top of the list, sorted by requirement
+     group.
+  2. Click anywhere on the card to expand it.
+  3. A ranked list of instructors appears, sorted by average GPA (highest
+     first). Each row shows:
+       - Instructor name
+       - Average GPA awarded in that course
+       - Grade distribution bar (A / B / C / DNF)
+  4. Review the list. The instructor at the top has the highest historical
+     average GPA for that course.
+
+  TIP: Use the "Instructor" filter in the left sidebar to show only sections
+  taught by a specific instructor across all courses.
+
+
+TASK 4: Add a course to your plan
+----------------------------------
+
+Goal: Record your chosen instructor for a course so the system can track
+your progress toward completing all requirements.
+
+  1. Expand the course card (see Task 3).
+  2. Find the instructor row you want.
+  3. Click the "+ Add" button on that row.
+  4. The course is added to "Your Plan" on the right side of the Requirements
+     Checklist. The badge for that course in the checklist turns green.
+
+To swap to a different instructor after adding:
+  - Expand the same course card. Other instructor rows will now show a
+    "Swap" button instead of "+ Add". Click Swap to replace your selection.
+  - OR: if the amber "Better options available" panel appears in the
+    Requirements Checklist, click "Swap" next to any suggested upgrade,
+    or "Swap All" to apply every suggestion at once.
+
+To remove a course from your plan:
+  - In the Requirements Checklist, find the course in "Your Plan" and
+    click the X button on its row.
+
+
+TASK 5: Generate an optimal plan automatically
+----------------------------------------------
+
+Goal: Let the system build a complete plan for you by selecting the
+highest-GPA instructor for each required course.
+
+  1. Make sure you have selected a major (Task 1) and at least one year
+     (Task 2).
+  2. In the Requirements Checklist panel, click "Generate Plan"
+     (the purple button with a sparkle icon).
+  3. The system fetches the best available instructor for every required
+     course and fills in Your Plan automatically.
+
+  NOTE: Any courses you have already added manually are preserved.
+  Generate Plan only fills in the courses you have not yet selected.
+
+  TIP: After generating, review the plan and use Swap (Task 4) to override
+  any auto-selected instructor with your own preference.
+
+
+TASK 6: Save your completed plan
+---------------------------------
+
+Goal: Permanently store your plan so you can refer back to it later or
+export it to PDF.
+
+  1. Add courses until every section in the Requirements Checklist shows a
+     green checkmark. The progress indicator at the top of the checklist
+     shows "X/Y sections complete".
+  2. Once all sections are complete, the "Save Plan" button (green, with a
+     save icon) becomes active.
+  3. Click "Save Plan".
+  4. A dialog appears with a suggested plan name (e.g.,
+     "Computer Science — May 4, 2026"). Edit the name if you like.
+  5. Click "Save". The plan is saved to My Degree Plan and your current
+     draft is cleared.
+
+  NOTE: The Save Plan button remains disabled until every requirement group
+  is satisfied. See the checklist to identify which groups still need courses.
+
+  TIP: You can also click "Clear" to remove all courses from your current
+  draft and start over without saving.
+
+
+TASK 7: View and export a saved plan to PDF
+--------------------------------------------
+
+Goal: Review a saved plan and download it as a PDF to print or share with
+an advisor.
+
+  1. Click "My Degree Plan" in the top navigation bar.
+  2. Your saved plans are listed, newest first. Each card shows the plan
+     name, the courses and instructors selected, and the average GPA.
+  3. To export a plan as a PDF:
+       a. Find the plan card you want to export.
+       b. Click the "Export PDF" button on that card.
+       c. The browser downloads a PDF file named after your plan.
+  4. To delete a plan you no longer need, click the "Delete" button on
+     that card. This action cannot be undone.
+
+  TIP: For best PDF quality, use Google Chrome. If the exported PDF appears
+  blank or cut off, try zooming out in your browser before exporting.
+
+--------------------------------------------------------------------------------
+ADMIN TASKS
+--------------------------------------------------------------------------------
+
+Access the Admin portal by clicking "Admin" in the top navigation bar.
+No login is required.
+
+The Admin page has two main sections:
+  Import Grade Data       Load a new grade-history CSV from the university
+  Degree Requirements     Load or edit degree requirement plans by major
+
+
+TASK 8: Upload new grade-history data
+--------------------------------------
+
+Goal: Replace the grade-history data in the system with an updated CSV file
+obtained from the university.
+
+  1. Go to the Admin page and find the "Import Grade Data" section.
+  2. Drag your grade-history CSV file onto the upload area, or click the
+     area to open a file picker.
+     The CSV must contain at minimum these columns:
+       TERM, TERM_DESC, SUBJ, NUMB, CRN, INSTRUCTOR
+       and grade count columns (AP, A, AM, BP, B, ... F, P, N, OTHER, W, TOT_NON_W)
+  3. A preview appears showing the first valid data row from the file.
+     Confirm that the fields look correct (e.g., TERM: 202601, SUBJ: CS,
+     NUMB: 313, INSTRUCTOR: Smith).
+  4. Click "Confirm & Import" to load the data.
+     The system reports how many rows were inserted and which terms were
+     updated vs. newly added.
+  5. Click "Upload another file" to load an additional CSV, or navigate
+     away when done.
+
+  NOTE: If the file contains terms already in the system, those terms are
+  replaced entirely. This allows corrections and updates to be re-uploaded
+  without creating duplicate records.
+
+  NOTE: The reconciliation rules in data/meta/Reconciliation.csv are applied
+  automatically during import to normalize course numbers and titles.
+
+
+TASK 9: Import a degree plan for a major
+-----------------------------------------
+
+Goal: Replace all degree requirements for one major by uploading a
+structured CSV file.
+
+  1. Go to the Admin page and find the "Degree Requirements" section.
+  2. Click the major tab for the major you want to update:
+       Computer Science / Mathematics / Business Administration
+  3. In the "{Major} Requirements" card, drag your degree-plan CSV onto
+     the upload area, or click to browse.
+     Required CSV columns: GROUP, GROUP_TYPE, SUBJ, NUMB
+     Optional columns: SEQ (sequence tag), TITLE (course title)
+
+     Example row:
+       Upper-Division Core, all, CS, 315,, Intermed Algorithms
+
+  4. A preview appears showing the total number of courses found and the
+     first valid row. Confirm the fields look correct.
+  5. Click "Confirm & Import".
+
+  WARNING: This replaces ALL existing requirement groups and courses for
+  the selected major. The operation cannot be undone from the UI.
+
+  See data/dummy_data/dummy_degree_plan.csv for a correctly formatted
+  example file.
+
+
+TASK 10: Manually edit requirement groups
+------------------------------------------
+
+Goal: Add or remove individual courses or groups from a major's requirements
+without uploading a full CSV.
+
+  1. Go to the Admin page and find the "Degree Requirements" section.
+  2. Click the major tab for the major you want to edit.
+  3. Below the CSV upload card, the "{Major} Requirements" list shows all
+     current requirement groups. Click a group header to expand it.
+
+  To remove a course from a group:
+    Click "Remove" on the right side of the course row.
+
+  To add a course to a group:
+    a. Expand the group.
+    b. Click "+ Add course to this group" at the bottom of the group.
+    c. Select a subject from the dropdown (CS, MATH, or BA).
+    d. Select a course from the course dropdown.
+    e. If the group type is "one sequence", enter the sequence tag
+       (A, B, or C) in the Seq field.
+    f. Click "Add".
+
+  To delete an entire group:
+    Click "Delete group" in the group header. This removes the group and
+    all courses within it.
+
+  To add a new requirement group:
+    a. Scroll to the bottom of the requirements list.
+    b. In the "Add Requirement Group" form, enter a group name
+       (e.g., "Upper-Division Elective").
+    c. Select the group type:
+         All required          — student must take every course in the group
+         Choose at least one   — student must take at least one course
+         Choose one sequence   — student must complete one full sub-sequence
+    d. Click "Add Group".
+    e. Expand the new group and add courses to it (see steps above).
+
+--------------------------------------------------------------------------------
+TROUBLESHOOTING
+--------------------------------------------------------------------------------
+
+No courses appear in the main area
+  - Make sure at least one year is checked in the Year filter (left sidebar).
+  - Make sure a major is selected.
+
+The "Save Plan" button is greyed out
+  - Not all requirement sections are complete. Look at the Requirements
+    Checklist and find any groups that still show grey badges. Add a course
+    from each incomplete group.
+
+A required course is not showing up in the main area
+  - The course may not have been offered in the selected year(s). Try
+    selecting additional years to broaden the data range.
+
+The grade data looks outdated
+  - Ask your administrator to upload a new grade-history CSV (Task 8).
+
+The requirements shown don't match the current UO Catalog
+  - Ask your administrator to import an updated degree plan CSV (Task 9).
+
+The PDF export downloads as a blank file
+  - Try using Google Chrome. Other browsers may handle canvas rendering
+    differently. Also check that the plan card is fully visible on screen
+    before clicking Export PDF.
+
+The app does not load or shows a connection error
+  - Both the frontend (port 3000) and backend API (port 8000) must be
+    running. Refer to the Installation Instructions for how to start them.
+
+================================================================================
