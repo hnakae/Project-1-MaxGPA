@@ -338,4 +338,4 @@ def import_grade_csv(file_obj, db_path=DB_FILE) -> dict:
 
 if __name__ == '__main__':
     import sys
-    initialize_database(sys.argv[1] if len(sys.argv) > 1 else DATA_DIR)
+    initialize_database(sys.argv[1] if len(sys.argv) > 1 else GRADE_DATA_DIR)
