@@ -358,4 +358,15 @@ The app does not load or shows a connection error
   - Both the frontend (port 3000) and backend API (port 8000) must be
     running. Refer to the Installation Instructions for how to start them.
 
+--------------------------------------------------------------------------------
+AI DISCLOSURE
+--------------------------------------------------------------------------------
+
+The development of MaxGPA made extensive use of AI language models (including
+Claude by Anthropic and others) throughout every phase of the software
+engineering process: requirements analysis, software design, implementation,
+testing, debugging, and documentation. All AI-generated output was reviewed,
+evaluated, and integrated by the team members listed above, who remain
+responsible for the final product.
+
 ================================================================================

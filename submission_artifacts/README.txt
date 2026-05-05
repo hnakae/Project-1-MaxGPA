@@ -152,4 +152,15 @@ Database:
   DOCUMENTATION.md      Developer session log and design decisions
   Functional_Requirements.md  CIS 422 functional requirements (v3)
 
+--------------------------------------------------------------------------------
+AI DISCLOSURE
+--------------------------------------------------------------------------------
+
+The development of MaxGPA made extensive use of AI language models (including
+Claude by Anthropic and others) throughout every phase of the software
+engineering process: requirements analysis, software design, implementation,
+testing, debugging, and documentation. All AI-generated output was reviewed,
+evaluated, and integrated by the team members listed above, who remain
+responsible for the final product.
+
 ================================================================================
