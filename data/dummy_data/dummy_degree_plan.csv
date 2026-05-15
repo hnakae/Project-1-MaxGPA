@@ -1,0 +1,25 @@
+GROUP,GROUP_TYPE,SUBJ,NUMB,SEQ,TITLE
+Lower-Division Core,all,CS,210,,Computer Science I
+Lower-Division Core,all,CS,211,,Computer Science II
+Lower-Division Core,all,CS,212,,Computer Science III
+Lower-Division Core,all,MATH,251,,Calculus I
+Lower-Division Core,all,MATH,252,,Calculus II
+Upper-Division Core,all,CS,313,,Interm Data Structures
+Upper-Division Core,all,CS,314,,Computer Organization
+Upper-Division Core,all,CS,315,,Intermed Algorithms
+Upper-Division Core,all,CS,322,,Intro Software Engin
+Upper-Division Core,all,CS,415,,Operating Systems
+Upper-Division Core,all,MATH,341,,Elem Linear Algebra
+Upper-Division Core,all,MATH,231,,Elem Discrete Math I
+Upper-Division Elective — Choose One,choose_from,CS,471,,Intro Artificial Intel
+Upper-Division Elective — Choose One,choose_from,CS,451,,Data-Base Processing
+Upper-Division Elective — Choose One,choose_from,CS,432,,Intro to Networks
+Upper-Division Elective — Choose One,choose_from,CS,441,,Intro Comput Graphics
+Upper-Division Elective — Choose One,choose_from,CS,472,,Machine Learning
+Math Elective — Choose One,choose_from,MATH,425,,Statistical Methods I
+Math Elective — Choose One,choose_from,MATH,461,,Intro Methods Stats I
+Math Elective — Choose One,choose_from,MATH,256,,Intro Differ Equations
+Software Methods Sequence — Choose One,one_sequence,CS,422,A,Software Method I
+Software Methods Sequence — Choose One,one_sequence,CS,423,A,Software Method II
+Software Methods Sequence — Choose One,one_sequence,CS,333,B,Applied Cryptography
+Software Methods Sequence — Choose One,one_sequence,CS,433,B,Comp & Netwrk Security

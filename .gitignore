@@ -25,7 +25,6 @@
 *.pem
 api/venv/
 venv/
-data/
 
 # debug
 npm-debug.log*
@@ -55,3 +54,5 @@ venv/
 !db/grade_data.db
 *.db-shm
 *.db-wal
+
+presentation.txt

@@ -1,0 +1,13 @@
+GROUP,GROUP_TYPE,SUBJ,NUMB,SEQ,TITLE
+Lower-Division Core,all,CS,210,,Computer Science I
+Lower-Division Core,all,CS,211,,Computer Science II
+Lower-Division Core,all,CS,212,,Computer Science III
+Lower-Division Core,all,MATH,231,,Elem Discrete Math I
+Lower-Division Core,all,MATH,232,,Elem Discrete Math II
+Upper-Division Core,all,CS,313,,Interm Data Structures
+Upper-Division Core,all,CS,314,,Computer Organization
+Upper-Division Core,all,CS,315,,Intermed Algorithms
+Upper-Division Core,all,CS,330,,C/C++ and Unix
+Upper-Division Core,all,CS,415,,Operating Systems
+Upper-Division Core,all,CS,422,,Software Method I
+Upper-Division Core,all,CS,425,,Princ of Program Lang
