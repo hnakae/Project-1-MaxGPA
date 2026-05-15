@@ -1,9 +1,10 @@
-.PHONY: help install dev-fe dev-be test-fe test-be test-app test-db lint db-init docker-up docker-down push
+.PHONY: help install start dev-fe dev-be test-fe test-be test-app test-db lint db-init docker-up docker-down push
 
 # Default target: show help
 help:
 	@echo "Available commands:"
 	@echo "  install        Install all dependencies (frontend & backend)"
+	@echo "  start          Run both frontend and backend concurrently"
 	@echo "  dev-fe         Run Next.js frontend in development mode"
 	@echo "  dev-be         Run FastAPI backend in development mode"
 	@echo "  test-fe        Run frontend tests with Vitest"
@@ -22,6 +23,9 @@ install:
 	cd api && pip install -r requirements.txt
 
 # Development
+start:
+	$(MAKE) -j2 dev-be dev-fe
+
 dev-fe:
 	npm run dev
 
